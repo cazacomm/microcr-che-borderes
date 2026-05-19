@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact &amp; Préinscription - [NOM_CRECHE] | Bordères-sur-l'Échez</title>
+  <meta name="description" content="Contactez la micro-crèche [NOM_CRECHE] à Bordères-sur-l'Échez ou préinscrivez votre enfant en ligne. Tél : 06 31 00 68 71.">
+  <meta name="keywords" content="contact micro-crèche, préinscription, Bordères-sur-l'Échez, 65370, garde enfant Hautes-Pyrénées">
+  <meta name="geo.region" content="FR-65">
+  <meta property="og:title" content="Contact &amp; Préinscription - [NOM_CRECHE]">
+  <meta property="og:description" content="Préinscrivez votre enfant ou contactez-nous au 06 31 00 68 71.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container flex items-center justify-between px-4 py-3">
+      <a href="index.html" class="logo">[NOM_CRECHE]</a>
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="index.html">Accueil</a>
+        <a href="a-propos.html">À propos</a>
+        <a href="pedagogie.html">Pédagogie</a>
+        <a href="tarifs.html">Tarifs</a>
+        <a href="contact.html">Contact / Préinscription</a>
+      </nav>
+      <button id="burger" class="md:hidden text-2xl" aria-label="Ouvrir le menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="mobile-menu" class="mobile-menu">
+    <button id="menu-close" class="close" aria-label="Fermer le menu"><i class="fa-solid fa-xmark"></i></button>
+    <a href="index.html">Accueil</a>
+    <a href="a-propos.html">À propos</a>
+    <a href="pedagogie.html">Pédagogie</a>
+    <a href="tarifs.html">Tarifs</a>
+    <a href="contact.html">Contact / Préinscription</a>
+  </div>
+
+  <main>
+
+    <section class="hero compact">
+      <svg class="hero-decor sun" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="28" fill="#FFD966"/>
+        <g stroke="#FFD966" stroke-width="6" stroke-linecap="round">
+          <line x1="60" y1="6" x2="60" y2="22"/><line x1="60" y1="98" x2="60" y2="114"/>
+          <line x1="6" y1="60" x2="22" y2="60"/><line x1="98" y1="60" x2="114" y2="60"/>
+          <line x1="22" y1="22" x2="34" y2="34"/><line x1="86" y1="86" x2="98" y2="98"/>
+          <line x1="98" y1="22" x2="86" y2="34"/><line x1="34" y1="86" x2="22" y2="98"/>
+        </g>
+        <circle cx="52" cy="56" r="3" fill="#5a4500"/><circle cx="68" cy="56" r="3" fill="#5a4500"/>
+        <path d="M50 68 Q60 78 70 68" stroke="#5a4500" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-1" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#E8899E"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#E8556D"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-2" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#6BA8CC"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#4A8AB0"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-1" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-2" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor spiral" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 40 m -28 0 a 28 28 0 1 1 56 0 a 22 22 0 1 1 -44 0 a 16 16 0 1 1 32 0 a 10 10 0 1 1 -20 0 a 6 6 0 1 1 12 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+
+      <h1>Contact / Préinscription</h1>
+      <p class="subtitle">Une question, une visite ou une inscription ? Nous sommes à votre écoute</p>
+    </section>
+
+    <section class="section">
+      <div class="container">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          <!-- ===== Colonne gauche : Coordonnées ===== -->
+          <div class="bg-white p-8 rounded-2xl shadow-md">
+            <h2 class="text-2xl mb-6 font-title">Nos coordonnées</h2>
+
+            <ul class="space-y-5">
+              <li>
+                <a href="tel:0631006871" class="flex items-start gap-4 group">
+                  <span class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 text-xl shrink-0 group-hover:bg-pink-200 transition">
+                    <i class="fa-solid fa-phone"></i>
+                  </span>
+                  <div>
+                    <div class="font-semibold text-gray-800">Téléphone</div>
+                    <div class="text-gray-600 group-hover:text-pink-600 transition">06 31 00 68 71</div>
+                  </div>
+                </a>
+              </li>
+
+              <li>
+                <a href="mailto:contact@[NOM_CRECHE].fr" class="flex items-start gap-4 group">
+                  <span class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-xl shrink-0 group-hover:bg-yellow-200 transition">
+                    <i class="fa-solid fa-envelope"></i>
+                  </span>
+                  <div>
+                    <div class="font-semibold text-gray-800">Email</div>
+                    <div class="text-gray-600 group-hover:text-yellow-700 transition break-all">contact@[NOM_CRECHE].fr</div>
+                  </div>
+                </a>
+              </li>
+
+              <li>
+                <div class="flex items-start gap-4">
+                  <span class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xl shrink-0">
+                    <i class="fa-solid fa-location-dot"></i>
+                  </span>
+                  <div>
+                    <div class="font-semibold text-gray-800">Adresse</div>
+                    <div class="text-gray-600">Bordères-sur-l'Échez 65370</div>
+                  </div>
+                </div>
+              </li>
+
+              <li>
+                <div class="flex items-start gap-4">
+                  <span class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl shrink-0">
+                    <i class="fa-solid fa-clock"></i>
+                  </span>
+                  <div>
+                    <div class="font-semibold text-gray-800">Horaires</div>
+                    <div class="text-gray-600">Lundi - Vendredi<br>7h30 - 18h30</div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+
+            <div class="mt-8 pt-6 border-t border-gray-200">
+              <!-- data-link="preinscription" : remplacer href par l'URL réelle -->
+              <a href="#" data-link="preinscription" class="btn btn-primary w-full justify-center" style="font-size:1.05rem;padding:18px 24px;">
+                <i class="fa-solid fa-pen-to-square"></i> Accéder à la plateforme de préinscription
+              </a>
+            </div>
+          </div>
+
+          <!-- ===== Colonne droite : Carte ===== -->
+          <div>
+            <div class="bg-white p-4 rounded-2xl shadow-md overflow-hidden">
+              <iframe
+                src="https://www.google.com/maps?q=Bord%C3%A8res-sur-l%27%C3%89chez+65370&output=embed"
+                width="100%" height="500"
+                style="border:0; border-radius:12px;"
+                allowfullscreen=""
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Carte de Bordères-sur-l'Échez"></iframe>
+            </div>
+            <p class="text-center mt-4 text-gray-600 italic">Bordères-sur-l'Échez, 65370</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div>
+        <div class="footer-title">[NOM_CRECHE]</div>
+        <p>Micro-crèche 12 places</p>
+        <p>Bordères-sur-l'Échez 65370</p>
+      </div>
+      <div>
+        <div class="footer-title">Nos autres crèches</div>
+        <a href="bientot-disponible.html" class="footer-btn">Micro-crèche d'Ibos</a><br>
+        <a href="bientot-disponible.html" class="footer-btn">Les P'tits Soleils &amp; Explorateurs (Tarbes)</a>
+      </div>
+      <div>
+        <div class="footer-title">Suivez-nous</div>
+        <a href="https://www.instagram.com/microcreches.despyrenees?igsh=bmRvb2l2ZjlndjN0" target="_blank" rel="noopener" class="social-circle" aria-label="Instagram">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+      </div>
+    </div>
+    <div class="container">
+      <div class="divider"></div>
+      <p class="text-center text-sm">
+        © 2026 [NOM_CRECHE]. Tous droits réservés. — Site conçu par Caza Comm —
+        <a href="mentions-legales.html">Mentions légales</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

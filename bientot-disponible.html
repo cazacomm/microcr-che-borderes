@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bientôt disponible - [NOM_CRECHE]</title>
+  <meta name="description" content="Cette page sera bientôt disponible. Restez connectés pour découvrir nos autres micro-crèches.">
+  <meta name="robots" content="noindex,follow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container flex items-center justify-between px-4 py-3">
+      <a href="index.html" class="logo">[NOM_CRECHE]</a>
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="index.html">Accueil</a>
+        <a href="a-propos.html">À propos</a>
+        <a href="pedagogie.html">Pédagogie</a>
+        <a href="tarifs.html">Tarifs</a>
+        <a href="contact.html">Contact / Préinscription</a>
+      </nav>
+      <button id="burger" class="md:hidden text-2xl" aria-label="Ouvrir le menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="mobile-menu" class="mobile-menu">
+    <button id="menu-close" class="close" aria-label="Fermer le menu"><i class="fa-solid fa-xmark"></i></button>
+    <a href="index.html">Accueil</a>
+    <a href="a-propos.html">À propos</a>
+    <a href="pedagogie.html">Pédagogie</a>
+    <a href="tarifs.html">Tarifs</a>
+    <a href="contact.html">Contact / Préinscription</a>
+  </div>
+
+  <main>
+
+    <section class="hero compact">
+      <svg class="hero-decor sun" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="28" fill="#FFD966"/>
+        <g stroke="#FFD966" stroke-width="6" stroke-linecap="round">
+          <line x1="60" y1="6" x2="60" y2="22"/><line x1="60" y1="98" x2="60" y2="114"/>
+          <line x1="6" y1="60" x2="22" y2="60"/><line x1="98" y1="60" x2="114" y2="60"/>
+          <line x1="22" y1="22" x2="34" y2="34"/><line x1="86" y1="86" x2="98" y2="98"/>
+          <line x1="98" y1="22" x2="86" y2="34"/><line x1="34" y1="86" x2="22" y2="98"/>
+        </g>
+        <circle cx="52" cy="56" r="3" fill="#5a4500"/><circle cx="68" cy="56" r="3" fill="#5a4500"/>
+        <path d="M50 68 Q60 78 70 68" stroke="#5a4500" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-1" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#E8899E"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#E8556D"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-2" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#6BA8CC"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#4A8AB0"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-1" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-2" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor spiral" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 40 m -28 0 a 28 28 0 1 1 56 0 a 22 22 0 1 1 -44 0 a 16 16 0 1 1 32 0 a 10 10 0 1 1 -20 0 a 6 6 0 1 1 12 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+
+      <h1>Bientôt disponible 🌱</h1>
+      <p class="subtitle">Cette page se prépare avec amour</p>
+    </section>
+
+    <section class="section">
+      <div class="container max-w-2xl text-center">
+        <div class="bg-white rounded-3xl p-10 md:p-14 shadow-md">
+          <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-200 to-blue-200 flex items-center justify-center">
+            <i class="fa-solid fa-seedling text-4xl text-green-700"></i>
+          </div>
+          <h2 class="mb-4">Bientôt disponible</h2>
+          <p class="text-lg text-gray-700 mb-8">Cette crèche ouvrira bientôt ses portes. Restez connectés !</p>
+          <a href="index.html" class="btn btn-primary">
+            <i class="fa-solid fa-arrow-left"></i> Retour à l'accueil
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div>
+        <div class="footer-title">[NOM_CRECHE]</div>
+        <p>Micro-crèche 12 places</p>
+        <p>Bordères-sur-l'Échez 65370</p>
+      </div>
+      <div>
+        <div class="footer-title">Nos autres crèches</div>
+        <a href="bientot-disponible.html" class="footer-btn">Micro-crèche d'Ibos</a><br>
+        <a href="bientot-disponible.html" class="footer-btn">Les P'tits Soleils &amp; Explorateurs (Tarbes)</a>
+      </div>
+      <div>
+        <div class="footer-title">Suivez-nous</div>
+        <a href="https://www.instagram.com/microcreches.despyrenees?igsh=bmRvb2l2ZjlndjN0" target="_blank" rel="noopener" class="social-circle" aria-label="Instagram">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+      </div>
+    </div>
+    <div class="container">
+      <div class="divider"></div>
+      <p class="text-center text-sm">
+        © 2026 [NOM_CRECHE]. Tous droits réservés. — Site conçu par Caza Comm —
+        <a href="mentions-legales.html">Mentions légales</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

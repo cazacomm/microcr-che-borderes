@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>À propos - [NOM_CRECHE] | Micro-crèche Bordères-sur-l'Échez</title>
+  <meta name="description" content="Découvrez la micro-crèche [NOM_CRECHE] : 12 places, ouverture juin 2026 à Bordères-sur-l'Échez. Notre équipe, notre directrice, nos engagements.">
+  <meta name="keywords" content="micro-crèche Bordères, à propos, directrice, équipe, PMI, accueil tout-petits">
+  <meta name="geo.region" content="FR-65">
+  <meta property="og:title" content="À propos - [NOM_CRECHE]">
+  <meta property="og:description" content="Notre micro-crèche, notre directrice et notre équipe.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container flex items-center justify-between px-4 py-3">
+      <a href="index.html" class="logo">[NOM_CRECHE]</a>
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="index.html">Accueil</a>
+        <a href="a-propos.html">À propos</a>
+        <a href="pedagogie.html">Pédagogie</a>
+        <a href="tarifs.html">Tarifs</a>
+        <a href="contact.html">Contact / Préinscription</a>
+      </nav>
+      <button id="burger" class="md:hidden text-2xl" aria-label="Ouvrir le menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="mobile-menu" class="mobile-menu">
+    <button id="menu-close" class="close" aria-label="Fermer le menu"><i class="fa-solid fa-xmark"></i></button>
+    <a href="index.html">Accueil</a>
+    <a href="a-propos.html">À propos</a>
+    <a href="pedagogie.html">Pédagogie</a>
+    <a href="tarifs.html">Tarifs</a>
+    <a href="contact.html">Contact / Préinscription</a>
+  </div>
+
+  <main>
+
+    <!-- ================== HERO COMPACT ================== -->
+    <section class="hero compact">
+      <svg class="hero-decor sun" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="28" fill="#FFD966"/>
+        <g stroke="#FFD966" stroke-width="6" stroke-linecap="round">
+          <line x1="60" y1="6" x2="60" y2="22"/><line x1="60" y1="98" x2="60" y2="114"/>
+          <line x1="6" y1="60" x2="22" y2="60"/><line x1="98" y1="60" x2="114" y2="60"/>
+          <line x1="22" y1="22" x2="34" y2="34"/><line x1="86" y1="86" x2="98" y2="98"/>
+          <line x1="98" y1="22" x2="86" y2="34"/><line x1="34" y1="86" x2="22" y2="98"/>
+        </g>
+        <circle cx="52" cy="56" r="3" fill="#5a4500"/><circle cx="68" cy="56" r="3" fill="#5a4500"/>
+        <path d="M50 68 Q60 78 70 68" stroke="#5a4500" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-1" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#E8899E"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#E8556D"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-2" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#6BA8CC"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#4A8AB0"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-1" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-2" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor spiral" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 40 m -28 0 a 28 28 0 1 1 56 0 a 22 22 0 1 1 -44 0 a 16 16 0 1 1 32 0 a 10 10 0 1 1 -20 0 a 6 6 0 1 1 12 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+
+      <h1>À propos</h1>
+      <p class="subtitle">Notre micro-crèche, notre histoire, notre engagement</p>
+    </section>
+
+    <!-- ================== NOTRE MICRO-CRÈCHE ================== -->
+    <section class="section">
+      <div class="container max-w-4xl">
+        <h2>Notre Micro-crèche</h2>
+        <p class="lead">Un lieu chaleureux et sécurisant pour vos tout-petits</p>
+
+        <div class="bg-white p-8 rounded-2xl shadow-md leading-relaxed text-gray-700 space-y-4">
+          <p>Ouverte en juin 2026, la Micro-crèche <strong>[NOM_CRECHE]</strong>, située à Bordères-sur-l'Échez (65370), est un espace dédié à l'accueil des tout-petits, de 8 semaines à 3 ans révolus.</p>
+          <p><strong>Horaires :</strong> 7h30 - 18h30 du lundi au vendredi.</p>
+          <p>Notre structure, conçue pour recevoir 12 enfants, a pour mission de favoriser un développement harmonieux en combinant accueil collectif de qualité et attention individualisée.</p>
+          <p>Grâce à une équipe de professionnels qualifiés, nous veillons à instaurer des repères humains et un environnement adapté aux besoins de chaque enfant pour stimuler leur bien-être et leur socialisation.</p>
+          <p>Outre les accueils réguliers, nous proposons des solutions occasionnelles et d'urgence pour répondre aux besoins des familles.</p>
+          <p>En étroite collaboration avec la PMI et la mairie, nous nous engageons à offrir un cadre épanouissant et sécurisé pour chaque enfant, dans un esprit de proximité et de confiance.</p>
+        </div>
+
+        <div class="info-box mt-8">
+          <ul>
+            <li><i class="fa-solid fa-location-dot mr-2 text-green-700"></i> <strong>Adresse :</strong> Bordères-sur-l'Échez 65370</li>
+            <li><i class="fa-solid fa-clock mr-2 text-green-700"></i> <strong>Horaires :</strong> Lundi - Vendredi 7h30 - 18h30</li>
+            <li><i class="fa-solid fa-baby mr-2 text-green-700"></i> <strong>Capacité :</strong> 12 enfants (8 semaines - 3 ans)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== PRÉSENTATION DIRECTRICE ================== -->
+    <section class="section" style="background:#fff;">
+      <div class="container max-w-5xl">
+        <h2>Présentation de notre Directrice</h2>
+        <p class="lead">Une professionnelle expérimentée au service des tout-petits</p>
+
+        <div class="bg-white p-8 md:p-10 rounded-2xl shadow-md grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          <div class="flex justify-center">
+            <div class="relative">
+              <div class="w-44 h-44 rounded-full overflow-hidden bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center">
+                <img src="assets/images/directrice.jpg" alt="Portrait de la directrice" class="w-full h-full object-cover" onerror="this.style.display='none'">
+                <i class="fa-solid fa-user-tie text-5xl text-white absolute"></i>
+              </div>
+            </div>
+          </div>
+          <div class="md:col-span-2 text-gray-700 leading-relaxed space-y-4">
+            <p>Notre micro-crèche ouvrira ses portes en juin 2026, sous la direction d'une professionnelle expérimentée et passionnée par la petite enfance. Notre directrice, titulaire du CAP Petite Enfance depuis 2016 et diplômée Éducatrice de Jeunes Enfants en 2019, apporte avec elle une expertise précieuse et un engagement exemplaire dans l'accompagnement des jeunes enfants.</p>
+            <p>Bienveillante et dynamique, elle élabore des projets pédagogiques variés et enrichissants, centrés sur l'éveil et l'épanouissement de chaque enfant. Sa capacité à créer des liens de confiance avec les parents, les enfants et toute l'équipe contribuera à faire de notre structure un lieu accueillant et chaleureux, où chacun se sentira en confiance. Avec sa vision moderne et son sens du relationnel, notre directrice s'assure que notre micro-crèche devienne un espace sécurisé et stimulant, dédié au bien-être des enfants.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== NOTRE ÉQUIPE ================== -->
+    <section class="section">
+      <div class="container max-w-4xl text-center">
+        <h3 class="text-3xl mb-4 font-title">Notre équipe</h3>
+        <div class="bg-white p-8 rounded-2xl shadow-md">
+          <div class="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-users text-3xl text-yellow-600"></i>
+          </div>
+          <p class="text-gray-700 leading-relaxed text-lg">
+            Une équipe de professionnels qualifiés et passionnés, formés aux pédagogies <strong>Montessori</strong> et <strong>Loczy</strong>, accompagne vos enfants au quotidien avec bienveillance et expertise.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div>
+        <div class="footer-title">[NOM_CRECHE]</div>
+        <p>Micro-crèche 12 places</p>
+        <p>Bordères-sur-l'Échez 65370</p>
+      </div>
+      <div>
+        <div class="footer-title">Nos autres crèches</div>
+        <a href="bientot-disponible.html" class="footer-btn">Micro-crèche d'Ibos</a><br>
+        <a href="bientot-disponible.html" class="footer-btn">Les P'tits Soleils &amp; Explorateurs (Tarbes)</a>
+      </div>
+      <div>
+        <div class="footer-title">Suivez-nous</div>
+        <a href="https://www.instagram.com/microcreches.despyrenees?igsh=bmRvb2l2ZjlndjN0" target="_blank" rel="noopener" class="social-circle" aria-label="Instagram">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+      </div>
+    </div>
+    <div class="container">
+      <div class="divider"></div>
+      <p class="text-center text-sm">
+        © 2026 [NOM_CRECHE]. Tous droits réservés. — Site conçu par Caza Comm —
+        <a href="mentions-legales.html">Mentions légales</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

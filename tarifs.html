@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tarifs &amp; Aides - [NOM_CRECHE] | Micro-crèche Bordères-sur-l'Échez</title>
+  <meta name="description" content="Forfaits flexibles de 1 à 5 jours par semaine à la micro-crèche [NOM_CRECHE]. Bénéficiez des aides CAF (CMG), crédit d'impôt et prise en charge employeur.">
+  <meta name="keywords" content="tarifs micro-crèche, CMG CAF, crédit impôt garde enfant, forfaits crèche, Bordères 65">
+  <meta name="geo.region" content="FR-65">
+  <meta property="og:title" content="Tarifs &amp; Aides - [NOM_CRECHE]">
+  <meta property="og:description" content="Forfaits 1 à 5 jours/semaine et aides CAF jusqu'à 967 €.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container flex items-center justify-between px-4 py-3">
+      <a href="index.html" class="logo">[NOM_CRECHE]</a>
+      <nav class="hidden md:flex items-center gap-8">
+        <a href="index.html">Accueil</a>
+        <a href="a-propos.html">À propos</a>
+        <a href="pedagogie.html">Pédagogie</a>
+        <a href="tarifs.html">Tarifs</a>
+        <a href="contact.html">Contact / Préinscription</a>
+      </nav>
+      <button id="burger" class="md:hidden text-2xl" aria-label="Ouvrir le menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="mobile-menu" class="mobile-menu">
+    <button id="menu-close" class="close" aria-label="Fermer le menu"><i class="fa-solid fa-xmark"></i></button>
+    <a href="index.html">Accueil</a>
+    <a href="a-propos.html">À propos</a>
+    <a href="pedagogie.html">Pédagogie</a>
+    <a href="tarifs.html">Tarifs</a>
+    <a href="contact.html">Contact / Préinscription</a>
+  </div>
+
+  <main>
+
+    <section class="hero compact">
+      <svg class="hero-decor sun" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="28" fill="#FFD966"/>
+        <g stroke="#FFD966" stroke-width="6" stroke-linecap="round">
+          <line x1="60" y1="6" x2="60" y2="22"/><line x1="60" y1="98" x2="60" y2="114"/>
+          <line x1="6" y1="60" x2="22" y2="60"/><line x1="98" y1="60" x2="114" y2="60"/>
+          <line x1="22" y1="22" x2="34" y2="34"/><line x1="86" y1="86" x2="98" y2="98"/>
+          <line x1="98" y1="22" x2="86" y2="34"/><line x1="34" y1="86" x2="22" y2="98"/>
+        </g>
+        <circle cx="52" cy="56" r="3" fill="#5a4500"/><circle cx="68" cy="56" r="3" fill="#5a4500"/>
+        <path d="M50 68 Q60 78 70 68" stroke="#5a4500" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-1" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#E8899E"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#E8556D"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor balloon balloon-2" viewBox="0 0 80 110" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="42" rx="32" ry="38" fill="#6BA8CC"/>
+        <ellipse cx="30" cy="32" rx="8" ry="12" fill="rgba(255,255,255,0.4)"/>
+        <polygon points="36,80 44,80 40,86" fill="#4A8AB0"/>
+        <line x1="40" y1="86" x2="40" y2="108" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-1" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor cloud cloud-2" viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="45" rx="28" ry="20" fill="#fff"/>
+        <ellipse cx="70" cy="35" rx="32" ry="25" fill="#fff"/>
+        <ellipse cx="100" cy="48" rx="26" ry="18" fill="#fff"/>
+      </svg>
+      <svg class="hero-decor spiral" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 40 m -28 0 a 28 28 0 1 1 56 0 a 22 22 0 1 1 -44 0 a 16 16 0 1 1 32 0 a 10 10 0 1 1 -20 0 a 6 6 0 1 1 12 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+
+      <h1>Tarifs</h1>
+      <p class="subtitle">Des forfaits flexibles adaptés à chaque famille</p>
+    </section>
+
+    <!-- ================== INTRO + FORFAITS ================== -->
+    <section class="section">
+      <div class="container max-w-5xl">
+        <h2>Nos Forfaits</h2>
+        <p class="lead">À la Micro-crèche [NOM_CRECHE], nous proposons plusieurs formules adaptées aux besoins de chaque famille, avec une souplesse allant de 1 à 5 jours de garde par semaine.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-8">
+
+          <div class="bg-white rounded-2xl p-6 shadow-md text-center border-t-4 border-pink-300 flex flex-col">
+            <div class="text-4xl font-bold mb-2 text-pink-500 font-title">1</div>
+            <h3 class="text-lg mb-2">Forfait 1 jour</h3>
+            <p class="text-sm text-gray-600 mb-4 flex-grow">1 jour par semaine</p>
+            <a href="contact.html" class="btn btn-outline text-sm" style="padding:8px 14px;">Tarif sur demande</a>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-md text-center border-t-4 border-yellow-300 flex flex-col">
+            <div class="text-4xl font-bold mb-2 text-yellow-600 font-title">2</div>
+            <h3 class="text-lg mb-2">Forfait 2 jours</h3>
+            <p class="text-sm text-gray-600 mb-4 flex-grow">2 jours par semaine</p>
+            <a href="contact.html" class="btn btn-outline text-sm" style="padding:8px 14px;">Tarif sur demande</a>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-md text-center border-t-4 border-green-300 flex flex-col">
+            <div class="text-4xl font-bold mb-2 text-green-600 font-title">3</div>
+            <h3 class="text-lg mb-2">Forfait 3 jours</h3>
+            <p class="text-sm text-gray-600 mb-4 flex-grow">3 jours par semaine</p>
+            <a href="contact.html" class="btn btn-outline text-sm" style="padding:8px 14px;">Tarif sur demande</a>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-md text-center border-t-4 border-blue-300 flex flex-col">
+            <div class="text-4xl font-bold mb-2 text-blue-600 font-title">4</div>
+            <h3 class="text-lg mb-2">Forfait 4 jours</h3>
+            <p class="text-sm text-gray-600 mb-4 flex-grow">4 jours par semaine</p>
+            <a href="contact.html" class="btn btn-outline text-sm" style="padding:8px 14px;">Tarif sur demande</a>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 shadow-md text-center border-t-4 border-purple-300 flex flex-col">
+            <div class="text-4xl font-bold mb-2 text-purple-600 font-title">5</div>
+            <h3 class="text-lg mb-2">Forfait 5 jours</h3>
+            <p class="text-sm text-gray-600 mb-4 flex-grow">5 jours par semaine</p>
+            <a href="contact.html" class="btn btn-outline text-sm" style="padding:8px 14px;">Tarif sur demande</a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== AIDES FINANCIÈRES ================== -->
+    <section class="section" style="background:#fff;">
+      <div class="container max-w-5xl">
+        <h2>Aides Financières</h2>
+        <p class="lead">Pour alléger le coût de la garde, vous pouvez bénéficier d'aides financières grâce au "Complément de libre choix du mode de garde" (CMG) de la CAF.</p>
+
+        <div class="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 mb-10 max-w-3xl mx-auto">
+          <p class="text-gray-700 mb-4 text-center">Selon votre tranche de revenus, ces aides peuvent aller jusqu'à :</p>
+          <ul class="space-y-3 max-w-md mx-auto">
+            <li class="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
+              <span class="font-medium">Tranche 1</span>
+              <span class="font-bold text-green-700 text-lg">jusqu'à 967 €</span>
+            </li>
+            <li class="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
+              <span class="font-medium">Tranche 2</span>
+              <span class="font-bold text-green-700 text-lg">jusqu'à 834 €</span>
+            </li>
+            <li class="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
+              <span class="font-medium">Tranche 3</span>
+              <span class="font-bold text-green-700 text-lg">jusqu'à 700 €</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          <div class="feature-card text-center">
+            <div class="ic mx-auto" style="background:#D4F1D4;color:#5AA85A;"><i class="fa-solid fa-sack-dollar"></i></div>
+            <h3>Aides CAF</h3>
+            <p>Complément de libre choix du mode de garde</p>
+          </div>
+
+          <div class="feature-card text-center">
+            <div class="ic mx-auto" style="background:#FFEBC4;color:#E8B847;"><i class="fa-solid fa-percent"></i></div>
+            <h3>Crédit d'Impôt</h3>
+            <p>Jusqu'à 50% des frais engagés</p>
+          </div>
+
+          <div class="feature-card text-center">
+            <div class="ic mx-auto" style="background:#C9E4F5;color:#4A8AB0;"><i class="fa-solid fa-building"></i></div>
+            <h3>Prise en charge employeur</h3>
+            <p>Participation possible de votre entreprise</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== CTA FINAL ================== -->
+    <section class="section" style="background:linear-gradient(135deg, #FFD6E0, #E6D6F5);">
+      <div class="container max-w-3xl text-center">
+        <h2>Obtenez nos tarifs détaillés</h2>
+        <p class="text-lg text-gray-700 mb-8">Pour obtenir nos tarifs détaillés, nous vous invitons à nous contacter directement par téléphone.</p>
+        <a href="contact.html" class="btn btn-primary" style="font-size:1.15rem;padding:18px 36px;">
+          <i class="fa-solid fa-phone"></i> Contact / Préinscription
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div>
+        <div class="footer-title">[NOM_CRECHE]</div>
+        <p>Micro-crèche 12 places</p>
+        <p>Bordères-sur-l'Échez 65370</p>
+      </div>
+      <div>
+        <div class="footer-title">Nos autres crèches</div>
+        <a href="bientot-disponible.html" class="footer-btn">Micro-crèche d'Ibos</a><br>
+        <a href="bientot-disponible.html" class="footer-btn">Les P'tits Soleils &amp; Explorateurs (Tarbes)</a>
+      </div>
+      <div>
+        <div class="footer-title">Suivez-nous</div>
+        <a href="https://www.instagram.com/microcreches.despyrenees?igsh=bmRvb2l2ZjlndjN0" target="_blank" rel="noopener" class="social-circle" aria-label="Instagram">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+      </div>
+    </div>
+    <div class="container">
+      <div class="divider"></div>
+      <p class="text-center text-sm">
+        © 2026 [NOM_CRECHE]. Tous droits réservés. — Site conçu par Caza Comm —
+        <a href="mentions-legales.html">Mentions légales</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
