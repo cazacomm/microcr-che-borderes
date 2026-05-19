@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Micro-crèche [NOM_CRECHE] - JS principal
+   Micro-crèche Le Jardin des Merveilles - JS principal
    - Smooth scroll
    - Mobile menu toggle
    - Animations (pulse géré en CSS)

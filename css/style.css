@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Micro-crèche [NOM_CRECHE] - Bordères-sur-l'Échez
+   Micro-crèche Le Jardin des Merveilles - Bordères-sur-l'Échez
    Styles globaux
    ========================================================================== */
 
@@ -69,49 +69,51 @@ h1, h2, h3, h4, .font-title {
 main { padding-top: 72px; }
 
 /* ==========================================================================
-   HERO - fond animé arc-en-ciel pastel
+   HERO - fond animé arc-en-ciel pastel SATURÉ
    ========================================================================== */
 .hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg,
-    #FFD6E0 0%,
-    #FFEBC4 20%,
-    #D4F1D4 40%,
-    #C9E4F5 60%,
-    #E6D6F5 80%,
-    #FFD6E0 100%);
-  background-size: 200% 200%;
+  background-color: #E8899E;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.10) 0%, transparent 50%),
+    linear-gradient(135deg, #E8899E 0%, #F5D06C 25%, #7FCC7F 50%, #6BA8CC 75%, #C89FE6 100%);
+  background-size: 100% 100%, 100% 100%, 200% 200%;
   animation: gradientShift 15s ease infinite;
-  padding: 80px 20px 100px;
+  padding: 100px 20px 110px;
   text-align: center;
 }
 
-.hero.compact { padding: 60px 20px 70px; }
+.hero.compact { padding: 70px 20px 70px; }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% { background-position: 0% 0%, 0% 0%, 0% 50%; }
+  50% { background-position: 0% 0%, 0% 0%, 100% 50%; }
+  100% { background-position: 0% 0%, 0% 0%, 0% 50%; }
 }
 
 .hero h1 {
   position: relative;
   z-index: 5;
-  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 7vw, 5rem);
   color: #fff;
-  text-shadow: 0 4px 24px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.15);
-  margin: 0 0 12px;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15);
+  margin: 0 0 14px;
+  line-height: 1.05;
 }
 
 .hero .subtitle {
   position: relative;
   z-index: 5;
+  font-family: 'Quicksand', sans-serif;
   font-size: clamp(1.05rem, 2.4vw, 1.4rem);
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.2);
   font-weight: 500;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .hero .highlight {
@@ -254,35 +256,33 @@ main { padding-top: 72px; }
 .btn-outline:hover { background: var(--pink-dark); color: #fff; }
 
 /* ==========================================================================
-   CARDS - 4 BLOCS DE NAVIGATION
+   CARDS - 4 BLOCS DE NAVIGATION (compactes)
    ========================================================================== */
 .nav-card {
-  padding: 32px 28px;
+  padding: 20px 24px;
   border-radius: 20px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.07);
   transition: transform .3s ease, box-shadow .3s ease;
   text-decoration: none;
   color: var(--text);
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-height: 280px;
+  align-items: center;
+  gap: 18px;
 }
 .nav-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 38px rgba(0,0,0,0.14);
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(0,0,0,0.12);
 }
 
 .nav-card .icon-wrap {
-  width: 72px; height: 72px;
+  width: 60px; height: 60px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.7);
-  border-radius: 18px;
-  margin-bottom: 18px;
+  flex-shrink: 0;
 }
 
-.nav-card h3 { font-size: 1.6rem; margin: 0 0 8px; }
-.nav-card p { margin: 0 0 18px; color: rgba(0,0,0,0.7); }
+.nav-card .nav-card-body { flex: 1; min-width: 0; }
+.nav-card h3 { font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 1.35rem; margin: 0 0 4px; }
+.nav-card p { margin: 0 0 8px; color: rgba(0,0,0,0.7); font-size: 0.92rem; }
 
 .nav-card.bg-blue { background: #C9E4F5; }
 .nav-card.bg-yellow { background: #FFEBC4; }
@@ -290,48 +290,54 @@ main { padding-top: 72px; }
 .nav-card.bg-pink { background: #FFD6E0; }
 
 .nav-card .card-cta {
-  margin-top: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: #fff;
-  background: rgba(0,0,0,0.55);
-  padding: 8px 18px;
-  border-radius: 999px;
-  transition: background .2s ease;
+  font-size: 0.88rem;
+  color: rgba(0,0,0,0.7);
+  transition: color .2s ease, transform .2s ease;
 }
-.nav-card:hover .card-cta { background: var(--pink-dark); }
+.nav-card:hover .card-cta { color: var(--pink-dark); transform: translateX(2px); }
 
 /* ==========================================================================
-   FAMILY CTA CARDS (pulse)
+   FAMILY CTA CARDS (pulse, compactes)
    ========================================================================== */
 .family-card {
-  padding: 38px 28px;
-  border-radius: 24px;
+  padding: 24px 20px;
+  border-radius: 20px;
   text-align: center;
   color: #fff;
   text-decoration: none;
   display: flex; flex-direction: column; align-items: center;
-  box-shadow: 0 18px 44px rgba(0,0,0,0.18);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.16);
   animation: pulse 2.8s ease-in-out infinite;
   transition: transform .3s ease, box-shadow .3s ease;
+  max-width: 360px;
+  width: 100%;
+  margin: 0 auto;
 }
 .family-card:hover {
   animation-play-state: paused;
-  transform: scale(1.05);
-  box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+  transform: scale(1.04);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.24);
 }
 .family-card.bg-grad-1 { background: linear-gradient(135deg, #6BA8CC, #5AA85A); }
 .family-card.bg-grad-2 { background: linear-gradient(135deg, #E8899E, #C89FE6); }
-.family-card h3 { font-size: 1.7rem; margin: 16px 0 8px; }
+.family-card h3 { font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 1.5rem; margin: 12px 0 6px; }
+.family-card .family-sub {
+  font-size: 0.92rem;
+  opacity: 0.95;
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
 .family-card span.tag {
   display: inline-block;
-  padding: 6px 16px;
+  padding: 5px 14px;
   border-radius: 999px;
   background: rgba(255,255,255,0.22);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 @keyframes pulse {
@@ -347,17 +353,35 @@ main { padding-top: 72px; }
   color: #fff;
   padding: 80px 20px;
 }
-.testimonials h2 { color: #fff; text-align: center; margin-bottom: 50px; font-size: 2.4rem; }
+.testimonials h2 { color: #fff; text-align: center; margin-bottom: 50px; font-size: 2.4rem; font-family: 'Quicksand', sans-serif; }
 .testimonial-card {
   background: rgba(255,255,255,0.08);
-  padding: 30px 24px;
+  padding: 28px 22px;
   border-radius: 18px;
   text-align: center;
   backdrop-filter: blur(6px);
   border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
 }
-.testimonial-card .stars { color: #FFD966; font-size: 1.2rem; margin-bottom: 12px; }
-.testimonial-card .name { font-family: 'Quicksand', sans-serif; font-weight: 600; font-size: 1.15rem; }
+.testimonial-card .stars { color: #FFD966; font-size: 1.2rem; margin-bottom: 14px; letter-spacing: 2px; }
+.testimonial-card .text {
+  flex: 1;
+  color: rgba(255,255,255,0.92);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.testimonial-card .name { font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 1.1rem; }
+.testimonial-card .source { font-size: 0.78rem; opacity: 0.7; margin-top: 4px; }
 
 /* ==========================================================================
    GALERIE
@@ -418,6 +442,20 @@ main { padding-top: 72px; }
   transition: background .25s;
 }
 .site-footer .footer-btn:hover { background: rgba(255,255,255,0.28); }
+.site-footer .footer-btn small {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin-top: 2px;
+  font-weight: 400;
+}
+.site-footer .credit-link {
+  text-decoration: underline;
+  text-decoration-color: rgba(255,255,255,0.45);
+  text-underline-offset: 3px;
+  transition: text-decoration-color .2s;
+}
+.site-footer .credit-link:hover { text-decoration-color: #fff; opacity: 1; }
 .site-footer .social-circle {
   display: inline-flex;
   width: 44px; height: 44px;
@@ -528,11 +566,59 @@ main { padding-top: 72px; }
    ========================================================================== */
 .container { max-width: 1180px; margin: 0 auto; }
 
+/* ==========================================================================
+   FAMILY SECTION BG (pastel transparent)
+   ========================================================================== */
+.family-section {
+  background:
+    linear-gradient(135deg,
+      rgba(127, 204, 127, 0.12) 0%,
+      rgba(245, 208, 108, 0.10) 50%,
+      rgba(232, 137, 158, 0.12) 100%);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
 @media (max-width: 768px) {
-  .sun { width: 80px; height: 80px; top: 6%; right: 4%; }
-  .balloon-1 { width: 50px; left: 4%; }
-  .balloon-2 { width: 45px; right: 5%; }
-  .cloud-1 { width: 90px; }
-  .cloud-2 { width: 70px; }
-  .spiral { width: 50px; height: 50px; }
+  main { padding-top: 64px; }
+  .sun { width: 70px; height: 70px; top: 6%; right: 4%; }
+  .balloon-1 { width: 46px; left: 4%; top: 12%; }
+  .balloon-2 { width: 42px; right: 5%; top: 55%; }
+  .cloud-1 { width: 80px; left: 18%; }
+  .cloud-2 { width: 64px; }
+  .spiral { width: 48px; height: 48px; right: 8%; bottom: 8%; }
+
+  .hero { padding: 80px 16px 70px; }
+  .hero.compact { padding: 60px 16px 50px; }
+  .hero h1 { font-size: 2.4rem; }
+  .hero .subtitle { font-size: 1rem; }
+  .hero .highlight { font-size: 1.05rem; padding: 8px 18px; }
+
+  .section { padding: 60px 16px; }
+  .section h2 { font-size: 1.7rem; }
+  .section .lead { font-size: 1rem; margin-bottom: 36px; }
+
+  .btn { padding: 12px 22px; font-size: 0.95rem; }
+  .hero-cta { gap: 10px; }
+  .hero-cta .btn { min-height: 44px; }
+
+  .nav-card { padding: 16px 18px; gap: 14px; }
+  .nav-card h3 { font-size: 1.15rem; }
+  .nav-card .icon-wrap { width: 50px; height: 50px; }
+  .nav-card .icon-wrap svg { width: 36px; height: 36px; }
+
+  .family-card { padding: 22px 18px; }
+  .family-card h3 { font-size: 1.25rem; }
+  .family-card .family-sub { font-size: 0.85rem; }
+
+  .value-circle { width: 170px; height: 170px; font-size: 1.25rem; }
+
+  .testimonial-card { min-height: 240px; padding: 22px 18px; }
+
+  .site-header .logo { font-size: 1.15rem; }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 2.05rem; }
 }

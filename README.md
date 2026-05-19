@@ -1,6 +1,6 @@
-# Site Micro-crèche Bordères-sur-l'Échez
+# Site Le Jardin des Merveilles — Micro-crèche Bordères-sur-l'Échez
 
-Site vitrine statique pour une micro-crèche située à Bordères-sur-l'Échez (65370), ouverture juin 2026.
+Site vitrine statique pour la micro-crèche **Le Jardin des Merveilles** située à Bordères-sur-l'Échez (65370), ouverture juin 2026.
 
 ## ✨ Stack
 
@@ -33,27 +33,30 @@ Hébergement : **GitHub Pages**. Le site fonctionne aussi en local en ouvrant `i
 
 ## 🛠️ Placeholders à remplir manuellement
 
-> Tous ces placeholders sont écrits littéralement dans le code et faciles à retrouver avec un Rechercher/Remplacer.
+Il ne reste que **3 placeholders** à compléter avant mise en ligne :
 
-| Placeholder | Où | Comment remplir |
-|---|---|---|
-| `[NOM_CRECHE]` | **Toutes les pages** (header, hero, footer, contenus) | Remplacer par le nom commercial définitif de la micro-crèche |
-| Lien **Préinscription** | `index.html` (hero) et `contact.html` (gros bouton CTA) — repérables par l'attribut `data-link="preinscription"` | Remplacer le `href="#"` par l'URL réelle de la plateforme de préinscription |
-| `[RAISON_SOCIALE]` | `mentions-legales.html` | Raison sociale exacte de l'entité juridique |
-| `[FORME_JURIDIQUE]` | `mentions-legales.html` | SARL, SAS, EURL, etc. |
-| `[ADRESSE_SIEGE]` | `mentions-legales.html` | Adresse complète du siège social |
-| `[SIRET]` | `mentions-legales.html` | Numéro SIRET à 14 chiffres |
-| `[NUMÉRO_TVA si applicable]` | `mentions-legales.html` | Si assujetti à TVA |
-| `[DIRECTEUR_DE_PUBLICATION]` | `mentions-legales.html` | Nom du directeur de publication |
-| `[CRÉDITS_PHOTOS]` | `mentions-legales.html` | Crédits si photos achetées/sous licence |
-| Email `contact@[NOM_CRECHE].fr` | `contact.html`, `mentions-legales.html` | Remplacer par l'adresse réelle |
+### 1. Lien de préinscription
+Le bouton « Préinscription » (hero accueil) et « Accéder à la plateforme de préinscription » (page contact) pointent vers `href="#"`. Repérables avec l'attribut `data-link="preinscription"`. Remplacer par l'URL réelle de la plateforme.
+
+### 2. Email de contact
+L'adresse `contact@lejardindesmerveilles.fr` est utilisée comme placeholder dans `contact.html` et `mentions-legales.html`. À remplacer par l'adresse email officielle.
+
+### 3. Informations légales (mentions-legales.html)
+Compléter les balises restantes :
+- `[RAISON_SOCIALE]` — raison sociale exacte
+- `[FORME_JURIDIQUE]` — SARL, SAS, EURL, etc.
+- `[ADRESSE_SIEGE]` — adresse complète du siège social
+- `[SIRET]` — numéro SIRET à 14 chiffres
+- `[NUMÉRO_TVA si applicable]` — si assujetti à TVA
+- `[DIRECTEUR_DE_PUBLICATION]` — nom du directeur de publication
+- `[CRÉDITS_PHOTOS]` — crédits photos si applicable
 
 ## 📸 Photos à fournir
 
 À déposer dans `assets/images/` (les fichiers HTML pointent déjà vers ces chemins) :
 
 - `directrice.jpg` — portrait de la directrice (carré recommandé, ~600×600px)
-- `vie-creche-1.jpg` à `vie-creche-8.jpg` — galerie « La vie à la crèche » (carrés recommandés, ~800×800px)
+- `vie-creche-1.jpg` à `vie-creche-4.jpg` — galerie « La vie à la crèche » (carrés recommandés, ~800×800px)
 
 > Tant que les photos ne sont pas présentes, des icônes Font Awesome s'affichent en fallback automatiquement.
 
