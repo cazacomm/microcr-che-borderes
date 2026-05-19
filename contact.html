@@ -87,16 +87,21 @@
 
       <h1>Contact / Préinscription</h1>
       <p class="subtitle">Une question, une visite ou une inscription ? Nous sommes à votre écoute</p>
+      <div class="hero-preinscription">
+        <a href="#" class="btn-pulse" data-link="preinscription">
+          <i class="fa-solid fa-pen-to-square"></i> Questionnaire de préinscription
+        </a>
+      </div>
     </section>
 
-    <section class="section">
+    <section class="section bg-pastel-pink">
       <div class="container">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
           <!-- ===== Colonne gauche : Coordonnées ===== -->
           <div class="bg-white p-8 rounded-2xl shadow-md">
-            <h2 class="text-2xl mb-6 font-title">Nos coordonnées</h2>
+            <h2 class="title-pink" style="text-align:left; font-size: clamp(1.7rem, 3.5vw, 2.2rem); margin-bottom: 24px;">Nos coordonnées</h2>
 
             <ul class="space-y-5">
               <li>
@@ -130,7 +135,7 @@
                   </span>
                   <div>
                     <div class="font-semibold text-gray-800">Adresse</div>
-                    <div class="text-gray-600">Bordères-sur-l'Échez 65370</div>
+                    <div class="text-gray-600">[ADRESSE_PRECISE]<br>Bordères-sur-l'Échez 65370</div>
                   </div>
                 </div>
               </li>
@@ -142,16 +147,15 @@
                   </span>
                   <div>
                     <div class="font-semibold text-gray-800">Horaires</div>
-                    <div class="text-gray-600">Lundi - Vendredi<br>7h30 - 18h30</div>
+                    <div class="text-gray-600">[HORAIRES]</div>
                   </div>
                 </div>
               </li>
             </ul>
 
-            <div class="mt-8 pt-6 border-t border-gray-200">
-              <!-- data-link="preinscription" : remplacer href par l'URL réelle -->
-              <a href="#" data-link="preinscription" class="btn btn-primary w-full justify-center" style="font-size:1.05rem;padding:18px 24px;">
-                <i class="fa-solid fa-pen-to-square"></i> Accéder à la plateforme de préinscription
+            <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+              <a href="#" data-link="preinscription" class="btn-pulse btn-pulse-lg" style="width:100%;">
+                <i class="fa-solid fa-pen-to-square"></i> Accéder au questionnaire de préinscription
               </a>
             </div>
           </div>
@@ -159,6 +163,7 @@
           <!-- ===== Colonne droite : Carte ===== -->
           <div>
             <div class="bg-white p-4 rounded-2xl shadow-md overflow-hidden">
+              <!-- TODO: zoomer sur l'adresse précise une fois fournie -->
               <iframe
                 src="https://www.google.com/maps?q=Bord%C3%A8res-sur-l%27%C3%89chez+65370&output=embed"
                 width="100%" height="500"
@@ -176,6 +181,17 @@
     </section>
 
   </main>
+
+  <!-- ================== PRE-FOOTER CTA ================== -->
+  <section class="pre-footer-cta">
+    <h2>Prêts à inscrire votre enfant&nbsp;?</h2>
+    <div class="pre-cta-btn-wrap">
+      <a href="#" class="btn-pulse btn-pulse-lg" data-link="preinscription">
+        <i class="fa-solid fa-pen-to-square"></i> Accéder au questionnaire de préinscription
+      </a>
+    </div>
+    <span class="secondary">ou contactez-nous au <a href="tel:0631006871">06 31 00 68 71</a></span>
+  </section>
 
   <footer class="site-footer">
     <div class="container grid grid-cols-1 md:grid-cols-3 gap-10">
