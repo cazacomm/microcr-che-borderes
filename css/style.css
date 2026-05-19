@@ -190,9 +190,10 @@ main { padding-top: 72px; }
 .balloon-1 { top: 18%; left: 6%; width: 70px; animation-delay: 0s; }
 .balloon-2 { top: 60%; right: 10%; width: 60px; animation-delay: 1.5s; }
 
-.cloud { animation: floatX 14s ease-in-out infinite; opacity: .85; }
-.cloud-1 { top: 18%; left: 30%; width: 130px; animation-delay: 0s; }
-.cloud-2 { top: 65%; left: 12%; width: 100px; animation-delay: 4s; }
+.cloud { animation: floatX 14s ease-in-out infinite; opacity: .8; }
+/* nuages confinés aux bords pour ne JAMAIS chevaucher le H1/sous-titre */
+.cloud-1 { top: 4%;  left: 4%;  width: 100px; animation-delay: 0s; }
+.cloud-2 { bottom: 6%; left: 4%; width: 90px;  animation-delay: 4s; }
 
 .spiral {
   bottom: 12%;
@@ -711,8 +712,7 @@ main { padding-top: 72px; }
   .sun { width: 70px; height: 70px; top: 6%; right: 4%; }
   .balloon-1 { width: 46px; left: 4%; top: 12%; }
   .balloon-2 { width: 42px; right: 5%; top: 55%; }
-  .cloud-1 { width: 80px; left: 18%; }
-  .cloud-2 { width: 64px; }
+  .cloud { display: none; }
   .spiral { width: 48px; height: 48px; right: 8%; bottom: 8%; }
 
   .hero { padding: 80px 16px 70px; }
