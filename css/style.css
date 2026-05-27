@@ -98,13 +98,17 @@ main { padding-top: 72px; }
 .hero.compact { padding: 70px 20px 70px; }
 
 .hero .hero-logo {
-  position: relative;
-  z-index: 5;
-  display: block;
-  margin: 0 auto 24px;
-  width: clamp(140px, 22vw, 220px);
+  position: absolute;
+  z-index: 2;
+  bottom: 24px;
+  left: 24px;
+  width: clamp(80px, 11vw, 120px);
   height: auto;
-  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+  border-radius: 18px;
+  background: rgba(255,255,255,0.85);
+  padding: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  pointer-events: none;
 }
 
 @keyframes gradientShift {
@@ -213,7 +217,7 @@ main { padding-top: 72px; }
 .cloud { animation: floatX 14s ease-in-out infinite; opacity: .8; }
 /* nuages confinés aux bords pour ne JAMAIS chevaucher le H1/sous-titre */
 .cloud-1 { top: 4%;  left: 4%;  width: 100px; animation-delay: 0s; }
-.cloud-2 { bottom: 6%; left: 4%; width: 90px;  animation-delay: 4s; }
+.cloud-2 { bottom: 6%; right: 4%; width: 90px; animation-delay: 4s; }
 
 .spiral {
   bottom: 12%;
