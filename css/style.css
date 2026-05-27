@@ -54,6 +54,16 @@ h1, h2, h3, h4, .font-title {
   font-weight: 700;
   font-size: 1.4rem;
   color: var(--pink-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.site-header .logo .logo-img {
+  height: 48px;
+  width: auto;
+  display: block;
 }
 
 .site-header nav a {
@@ -746,7 +756,8 @@ main { padding-top: 72px; }
 
   .testimonial-card { min-height: 240px; padding: 22px 18px; }
 
-  .site-header .logo { font-size: 1.15rem; }
+  .site-header .logo { font-size: 1.05rem; gap: 8px; }
+  .site-header .logo .logo-img { height: 38px; }
 }
 
 @media (max-width: 480px) {
