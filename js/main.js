@@ -60,4 +60,17 @@ document.addEventListener('DOMContentLoaded', () => {
   familyCards.forEach((c, i) => {
     c.style.animationDelay = `${i * 0.6}s`;
   });
+
+  // ---------- Boutons "Accéder aux préinscriptions" ----------
+  // Quand le lien de la plateforme externe sera disponible, le mettre ci-dessous.
+  // Il s'ouvrira automatiquement dans un nouvel onglet.
+  const PREINSCRIPTION_URL = '';
+  document.querySelectorAll('a[data-link="preinscription"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (PREINSCRIPTION_URL) {
+        window.open(PREINSCRIPTION_URL, '_blank', 'noopener');
+      }
+    });
+  });
 });

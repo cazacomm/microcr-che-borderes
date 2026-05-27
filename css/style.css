@@ -97,6 +97,16 @@ main { padding-top: 72px; }
 
 .hero.compact { padding: 70px 20px 70px; }
 
+.hero .hero-logo {
+  position: relative;
+  z-index: 5;
+  display: block;
+  margin: 0 auto 24px;
+  width: clamp(140px, 22vw, 220px);
+  height: auto;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+}
+
 @keyframes gradientShift {
   0% { background-position: 0% 0%, 0% 0%, 0% 50%; }
   50% { background-position: 0% 0%, 0% 0%, 100% 50%; }
@@ -433,6 +443,16 @@ main { padding-top: 72px; }
 }
 .site-footer a { color: #fff; text-decoration: none; transition: opacity .2s; }
 .site-footer a:hover { opacity: .8; }
+.site-footer .footer-logo {
+  display: block;
+  width: 90px;
+  height: auto;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,0.95);
+  padding: 8px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
 .site-footer .footer-title {
   font-family: 'Quicksand', sans-serif;
   font-weight: 700;
