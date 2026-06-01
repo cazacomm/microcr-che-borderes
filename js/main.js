@@ -62,15 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ---------- Boutons "Accéder aux préinscriptions" ----------
-  // Quand le lien de la plateforme externe sera disponible, le mettre ci-dessous.
-  // Il s'ouvrira automatiquement dans un nouvel onglet.
-  const PREINSCRIPTION_URL = '';
+  // URL de la plateforme externe de réservation de place.
+  // Les boutons deviennent de vrais liens (clic, clic-molette, nouvel onglet).
+  const PREINSCRIPTION_URL = 'https://mcdespyrenees.jdmapps.fr/index.php/espace-famille/reserver-une-place';
   document.querySelectorAll('a[data-link="preinscription"]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (PREINSCRIPTION_URL) {
-        window.open(PREINSCRIPTION_URL, '_blank', 'noopener');
-      }
-    });
+    if (PREINSCRIPTION_URL) {
+      link.setAttribute('href', PREINSCRIPTION_URL);
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener');
+    }
   });
 });
