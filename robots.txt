@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://www.micro-creche-borderes.fr/sitemap.xml
