@@ -1,0 +1,170 @@
+/* ==========================================================================
+   Micro-crèche Le Jardin des Merveilles - Bordères-sur-l'Échez
+   Styles BLOG (complément de css/style.css - aucune surcharge des styles globaux)
+   ========================================================================== */
+
+/* ==========================================================================
+   FIL D'ARIANE
+   ========================================================================== */
+.blog-breadcrumb {
+  font-size: 0.9rem;
+  color: #6b6b7a;
+  margin-bottom: 22px;
+}
+.blog-breadcrumb a {
+  color: var(--blue-dark);
+  text-decoration: none;
+}
+.blog-breadcrumb a:hover { text-decoration: underline; }
+.blog-breadcrumb span { color: #9a9aa8; }
+
+/* ==========================================================================
+   LISTE DES ARTICLES
+   ========================================================================== */
+.post-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+  text-decoration: none;
+  color: var(--text);
+  transition: transform .25s ease, box-shadow .25s ease;
+  height: 100%;
+}
+.post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+}
+.post-card .post-tag {
+  align-self: flex-start;
+  background: var(--yellow-dark);
+  color: #5a4500;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 5px 14px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+.post-card h3 {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1.25rem;
+  color: var(--pink-dark);
+  margin: 0 0 10px;
+  line-height: 1.35;
+}
+.post-card .post-meta {
+  font-size: 0.85rem;
+  color: #8a8a99;
+  margin-bottom: 12px;
+}
+.post-card .post-excerpt {
+  color: #55555f;
+  margin: 0 0 18px;
+  flex-grow: 1;
+}
+.post-card .card-cta {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  color: var(--blue-dark);
+}
+.post-card .card-cta i {
+  transition: transform .25s ease;
+  margin-left: 4px;
+}
+.post-card:hover .card-cta i { transform: translateX(5px); }
+
+/* ==========================================================================
+   ARTICLE
+   ========================================================================== */
+.post-body {
+  background: #fff;
+  border-radius: 20px;
+  padding: 34px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+  color: #3d3d48;
+  line-height: 1.8;
+}
+.post-body > *:first-child { margin-top: 0; }
+.post-body > *:last-child { margin-bottom: 0; }
+
+.post-body h2 {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 1.55rem;
+  color: var(--pink-dark);
+  margin: 42px 0 14px;
+  line-height: 1.3;
+}
+.post-body h3 {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 1.18rem;
+  color: var(--blue-dark);
+  margin: 28px 0 10px;
+}
+.post-body p { margin: 0 0 16px; }
+.post-body ul, .post-body ol { margin: 0 0 18px; padding-left: 22px; }
+.post-body li { margin-bottom: 8px; }
+.post-body strong { color: var(--text); }
+.post-body a { color: var(--blue-dark); }
+
+.post-lead {
+  font-size: 1.08rem;
+  color: #4a4a56;
+  border-left: 5px solid var(--yellow-dark);
+  padding-left: 18px;
+  margin-bottom: 26px;
+}
+
+.post-note {
+  background: #FDF6E3;
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin: 26px 0;
+}
+.post-note p:last-child { margin-bottom: 0; }
+
+.post-meta-line {
+  font-size: 0.9rem;
+  color: #8a8a99;
+  margin-bottom: 24px;
+}
+
+/* ==========================================================================
+   FAQ
+   ========================================================================== */
+.faq-item {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 26px;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.06);
+  margin-bottom: 14px;
+}
+.faq-item h3 {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 1.08rem;
+  color: var(--green-dark);
+  margin: 0 0 8px;
+}
+.faq-item p {
+  margin: 0;
+  color: #55555f;
+  line-height: 1.75;
+}
+
+/* ==========================================================================
+   NAVIGATION BAS D'ARTICLE
+   ========================================================================== */
+.post-back {
+  text-align: center;
+  margin-top: 34px;
+}
+
+@media (max-width: 640px) {
+  .post-body { padding: 24px 20px; }
+  .post-body h2 { font-size: 1.35rem; }
+}
