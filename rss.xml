@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blog - Micro-crèche Le Jardin des Merveilles</title>
+    <link>https://www.micro-creche-borderes.fr/blog/</link>
+    <description>Conseils petite enfance, éveil et vie quotidienne de la micro-crèche Le Jardin des Merveilles à Bordères-sur-l'Échez (65).</description>
+    <language>fr-FR</language>
+    <lastBuildDate>Sat, 15 Aug 2026 09:00:00 +0200</lastBuildDate>
+    <atom:link href="https://www.micro-creche-borderes.fr/rss.xml" rel="self" type="application/rss+xml"/>
+
+    <item>
+      <title>L'adaptation en micro-crèche à Bordères-sur-l'Échez : bien préparer les premiers jours</title>
+      <link>https://www.micro-creche-borderes.fr/blog/adaptation-micro-creche-borderes-sur-lechez/</link>
+      <guid isPermaLink="true">https://www.micro-creche-borderes.fr/blog/adaptation-micro-creche-borderes-sur-lechez/</guid>
+      <pubDate>Sat, 15 Aug 2026 09:00:00 +0200</pubDate>
+      <description>Comment se déroule la période de familiarisation, comment la préparer à la maison et comment accompagner sereinement les premières séparations.</description>
+    </item>
+
+  </channel>
+</rss>
