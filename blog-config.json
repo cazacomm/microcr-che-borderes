@@ -8,16 +8,46 @@
     "65320",
     "Tarbes",
     "Ibos",
+    "Aureilhan",
+    "Séméac",
     "Hautes-Pyrénées",
     "bassin tarbais",
     "agglomération tarbaise",
+    "Occitanie",
     "micro-crèche 65",
     "garde d'enfant Hautes-Pyrénées",
-    "mode de garde Bordères-sur-l'Échez"
+    "mode de garde Bordères-sur-l'Échez",
+    "place en crèche",
+    "accueil des tout-petits"
   ],
   "tone": "expert-conseil, factuel, chaleureux, sans jargon inutile",
   "author": "Le Jardin des Merveilles",
   "target_word_count": 1300,
   "faq_questions_count": 5,
-  "language": "fr"
+  "language": "fr",
+  "model": "gpt-4o",
+  "temperature": 0.7,
+  "topic_marker_prefix": "micro-creche-borderes-topic",
+  "og_image": "/assets/images/logo-borderes.PNG",
+  "logo_path": "/assets/images/logo-borderes.PNG",
+  "default_article_section": "Petite enfance",
+  "internal_link_targets": [
+    "/pedagogie.html",
+    "/tarifs.html",
+    "/contact.html"
+  ],
+  "reference_article_slug": "adaptation-micro-creche-borderes-sur-lechez",
+  "facts": [
+    "Micro-crèche Le Jardin des Merveilles, 6 rue du Colombard, 65320 Bordères-sur-l'Échez (Hautes-Pyrénées).",
+    "Structure de 12 places, accueillant les enfants de 10 semaines à 3 ans révolus.",
+    "Horaires d'ouverture : du lundi au vendredi, de 7h30 à 18h30.",
+    "Projet pédagogique inspiré des pédagogies Montessori et Loczy, avec motricité libre et respect du rythme de chaque enfant. Valeurs affichées : bienveillance, inclusion, liberté.",
+    "Directrice : Manon, éducatrice de jeunes enfants, 5 années d'expérience dans la petite enfance dont 3 en direction de structure.",
+    "Téléphone : 06 31 00 68 71. E-mail : lejardindesmerveilles65@gmail.com.",
+    "Zone desservie : Bordères-sur-l'Échez, Tarbes, Ibos et le bassin tarbais.",
+    "Forfaits d'accueil flexibles de 1 à 5 jours par semaine. Des aides existent (CAF, crédit d'impôt, prise en charge employeur) mais leur montant dépend de la situation de chaque famille : ne jamais avancer de chiffre, renvoyer vers la page Tarifs ou vers un contact direct.",
+    "Préinscription en ligne via l'espace famille : https://mcdespyrenees.jdmapps.fr/index.php/espace-famille/reserver-une-place",
+    "La structure fait partie d'un réseau de micro-crèches des Pyrénées, avec d'autres lieux d'accueil à Ibos (Micro-crèche des Pyrénées, Micro-crèche Matulessy) et à Tarbes (Les Petits Soleils, Les Petits Nuages).",
+    "Instagram : https://www.instagram.com/microcreches.despyrenees"
+  ]
 }

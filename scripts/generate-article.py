@@ -1,21 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Génération automatique d'un article de blog.
+Génération automatique d'un article de blog — Le Jardin des Merveilles.
 
-Principe (identique au setup Adesign) :
-  - le gabarit HTML n'est PAS dupliqué dans ce script : il est relu à chaque
-    exécution depuis un article déjà publié dans /blog/ ;
-  - seules les zones de contenu sont remplacées (title, metas, JSON-LD, hero,
-    fil d'ariane, corps, FAQ) ; header, décors SVG, CTA et footer sont conservés
-    tels quels ;
-  - un marqueur <!-- <site-slug>-topic: N --> rend l'opération idempotente.
+Le script :
+  1. lit blog-config.json ;
+  2. extrait de BLOG_WORKFLOW.md la liste des sujets suggérés et les règles éditoriales ;
+  3. scanne /blog/*/index.html pour savoir quels sujets sont déjà traités ;
+  4. choisit le prochain sujet non traité (ordre séquentiel) ;
+  5. relit l'article de référence pour s'en servir de gabarit HTML — le hero
+     et ses SVG décoratifs, le header, le footer et les feuilles de style en
+     sont extraits tels quels, rien n'est dupliqué dans le script ;
+  6. demande à l'API OpenAI le seul CONTENU éditorial, en JSON structuré
+     (titre, chapô, sections h2/h3, paragraphes, listes, FAQ) ;
+  7. valide ce contenu, puis ASSEMBLE lui-même la page : head, meta, canonical,
+     Open Graph, Twitter Card, les trois blocs JSON-LD, le fil d'Ariane, le
+     marqueur d'idempotence, le header et le footer viennent du gabarit et du
+     script — jamais du modèle ;
+  8. écrit /blog/<slug>/index.html, puis met à jour blog/index.html,
+     sitemap.xml, rss.xml et llms.txt.
+
+Le modèle n'écrit donc plus une ligne de HTML. Auparavant il régénérait toute la
+page : les deux tiers de ses tokens de sortie partaient en balisage, ce qui
+plafonnait le corps rédigé autour de 850 mots quelle que soit la consigne.
 
 Codes de sortie :
-    0  -> un article a été généré (ou simulé en --dry-run)
-    1  -> erreur
-   78  -> aucun nouveau sujet à traiter (rien à faire, ce n'est pas une erreur)
+   0  succès
+   1  erreur (rien n'a été écrit)
+  78  aucun nouveau sujet à traiter (EX_CONFIG — arrêt propre)
+
+Options :
+  --dry-run       n'écrit aucun fichier, affiche le résultat
+  --mock          n'appelle pas l'API (contenu de démonstration)
+  --rewrite SLUG  régénère un article existant et écrase son fichier
 """
+
+from __future__ import annotations
 
 import argparse
 import datetime as dt
@@ -24,688 +44,1220 @@ import os
 import re
 import sys
 import unicodedata
-import xml.etree.ElementTree as ET
+from pathlib import Path
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_PATH = os.path.join(ROOT, "blog-config.json")
-WORKFLOW_PATH = os.path.join(ROOT, "BLOG_WORKFLOW.md")
-BLOG_DIR = os.path.join(ROOT, "blog")
-BLOG_INDEX = os.path.join(BLOG_DIR, "index.html")
-SITEMAP = os.path.join(ROOT, "sitemap.xml")
-RSS = os.path.join(ROOT, "rss.xml")
+ROOT = Path(__file__).resolve().parent.parent
+CONFIG_PATH = ROOT / "blog-config.json"
+WORKFLOW_PATH = ROOT / "BLOG_WORKFLOW.md"
+BLOG_DIR = ROOT / "blog"
+BLOG_INDEX = BLOG_DIR / "index.html"
+SITEMAP = ROOT / "sitemap.xml"
+RSS = ROOT / "rss.xml"
+LLMS = ROOT / "llms.txt"
 
-EXIT_OK, EXIT_ERROR, EXIT_NOTHING = 0, 1, 78
+EXIT_OK, EXIT_ERROR, EXIT_NOTHING_TODO = 0, 1, 78
 
-MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
-           "août", "septembre", "octobre", "novembre", "décembre"]
+# Volume du corps rédigé, FAQ exclue, compté sur le contenu et non sur le HTML.
+#  · PROMPT_MIN/MAX_WORDS : la cible, annoncée au modèle et seuil de rattrapage.
+#  · MIN/MAX_WORDS        : bornes de validation, plus larges (tolérance ±30 %).
+# Le contournement « annoncer 1600 pour obtenir 1200 » n'a plus lieu d'être :
+# le modèle ne dépense plus ses tokens en balisage, la consigne redevient tenable.
+MIN_WORDS, MAX_WORDS = 900, 1900
+PROMPT_MIN_WORDS, PROMPT_MAX_WORDS = 1200, 1500
 
+# Nombre maximal d'appels OpenAI pour un article, rattrapages compris.
+# Le modèle rend ~600 mots en première passe et gagne 60 à 75 % à chaque
+# reprise : deux appels plafonnent vers 1000-1100 mots, trois franchissent 1200.
+MAX_CALLS = 3
 
-def log(msg):
-    print(msg, flush=True)
+MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin",
+             "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+DAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-
-class Fail(Exception):
-    """Erreur bloquante : on sort proprement, sans rien écrire."""
-
-
-# ---------------------------------------------------------------------------
-# Utilitaires
-# ---------------------------------------------------------------------------
-
-# Mots vides retirés des slugs. « sur » est volontairement conservé : il fait
-# partie du nom de la commune (Bordères-sur-l'Échez).
-SLUG_STOPWORDS = {
-    "a", "au", "aux", "avec", "ce", "cette", "comment", "dans", "de", "des",
-    "du", "elle", "en", "et", "il", "l", "la", "le", "les", "leur", "ou",
-    "pour", "qu", "que", "qui", "quoi", "sa", "ses", "son", "un", "une", "vos",
-    "votre", "y",
+# Mots vides écartés de la construction des slugs.
+STOPWORDS = {
+    "le", "la", "les", "un", "une", "des", "du", "de", "d", "l", "et", "ou", "a", "au",
+    "aux", "en", "dans", "sur", "pour", "par", "avec", "sans", "que", "qui", "quoi",
+    "ce", "cet", "cette", "ces", "se", "sa", "son", "ses", "nos", "notre", "votre",
+    "vos", "est", "ne", "pas", "plus", "tout", "tous", "toute", "toutes", "y", "il",
+    "elle", "on", "vraiment", "bien",
 }
 
 
-def slugify(text, max_words=9, drop_stopwords=True):
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    text = text.lower().replace("'", " ").replace("’", " ")
-    text = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
-    words = [w for w in text.split("-") if w]
-    if drop_stopwords:
-        # on retire aussi les lettres isolées issues des élisions (d'une, l'enfant…)
-        kept = [w for w in words
-                if w not in SLUG_STOPWORDS and not (len(w) == 1 and w.isalpha())]
-        words = kept or words
+# ─────────────────────────────────────────────────────────────
+# Utilitaires
+# ─────────────────────────────────────────────────────────────
+
+def log(msg: str) -> None:
+    print(f"[blog] {msg}", flush=True)
+
+
+def fail(msg: str) -> None:
+    print(f"[blog][ERREUR] {msg}", file=sys.stderr, flush=True)
+
+
+def strip_accents(text: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", text)
+                   if unicodedata.category(c) != "Mn")
+
+
+def slugify(title: str, max_words: int = 7) -> str:
+    """Slug déterministe : même titre => même slug (garantit l'idempotence)."""
+    text = strip_accents(title.lower())
+    text = text.replace("'", " ").replace("’", " ")
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    words = [w for w in text.split() if w and w not in STOPWORDS]
+    if not words:
+        words = [w for w in text.split() if w]
     words = words[:max_words]
-    while words and words[-1] in SLUG_STOPWORDS:
+    # Un slug ne doit pas se terminer sur un interrogatif orphelin
+    # (« …-borderes-echez-comment ») quand la troncature tombe au mauvais endroit.
+    while len(words) > 3 and words[-1] in {"comment", "pourquoi", "quand", "quel",
+                                           "quelle", "quels", "quelles", "combien"}:
         words.pop()
     return "-".join(words)
 
 
-def site_slug(config):
-    """Identifiant court du site, déduit de l'URL de prod (sert au marqueur)."""
-    host = re.sub(r"^https?://", "", config["site_url"]).split("/")[0]
-    host = re.sub(r"^www\.", "", host)
-    return slugify(host.rsplit(".", 1)[0], max_words=10, drop_stopwords=False)
-
-
-def esc(text):
+def esc(text: str) -> str:
+    """Échappement HTML. Tout le contenu du modèle passe par là : il fournit du
+    texte brut, jamais du markup, ce qui rend une injection HTML impossible."""
     return (text.replace("&", "&amp;").replace("<", "&lt;")
                 .replace(">", "&gt;").replace('"', "&quot;"))
 
 
-def date_fr(d):
-    return "%d %s %d" % (d.day, MOIS_FR[d.month - 1], d.year)
+def inline(text: str) -> str:
+    """Rend le balisage inline autorisé dans le texte du modèle, après
+    échappement : **gras** et [libellé](/chemin-interne).
+
+    Les liens sont restreints aux chemins commençant par « / » : le maillage
+    interne reste possible, un lien externe devient structurellement impossible."""
+    out = esc(text)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", out)
+    out = re.sub(r"\[([^\]]+)\]\((/[^)\s]*)\)", r'<a href="\2">\1</a>', out)
+    return out
 
 
-def clamp_description(text, limit=154):
-    """La meta description doit rester sous 155 caractères."""
-    text = " ".join(text.split())
-    if len(text) <= limit:
-        return text
-    cut = text[:limit]
-    if " " in cut:
-        cut = cut[:cut.rfind(" ")]
-    return cut.rstrip(" ,;:—-") + "."
+def plain(text: str) -> str:
+    """Texte débarrassé du balisage inline — pour les JSON-LD et les meta."""
+    out = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    return re.sub(r"\[([^\]]+)\]\((/[^)\s]*)\)", r"\1", out)
 
 
-def word_count(html):
-    return len(re.sub(r"<[^>]+>", " ", html).split())
+def content_word_count(data: dict) -> int:
+    """Volume rédactionnel du corps, FAQ exclue — compté sur le contenu lui-même
+    et non sur du HTML : plus de balises ni de boilerplate dans le total."""
+    words = len(plain(data.get("lede", "")).split())
+    for section in data.get("sections", []):
+        words += len(plain(section.get("h2", "")).split())
+        for block in section.get("content", []):
+            words += len(plain(block.get("text", "")).split())
+            for item in block.get("items", []) or []:
+                words += len(plain(item).split())
+    return words
+
+def fr_date(d: dt.date) -> str:
+    return f"{d.day} {MONTHS_FR[d.month - 1]} {d.year}"
 
 
-# ---------------------------------------------------------------------------
-# Lecture de la configuration et des sujets
-# ---------------------------------------------------------------------------
-
-def load_config():
-    if not os.path.isfile(CONFIG_PATH):
-        raise Fail("blog-config.json introuvable à la racine du dépôt.")
-    with open(CONFIG_PATH, encoding="utf-8") as f:
-        config = json.load(f)
-    required = ["site_name", "site_url", "sector", "location", "author",
-                "target_word_count", "faq_questions_count", "language"]
-    missing = [k for k in required if k not in config]
-    if missing:
-        raise Fail("blog-config.json : clés manquantes -> %s" % ", ".join(missing))
-    config["site_url"] = config["site_url"].rstrip("/")
-    return config
+def rfc822(d: dt.date, hour: str = "09:00:00") -> str:
+    return f"{DAYS_EN[d.weekday()]}, {d.day:02d} {MONTHS_EN[d.month - 1]} {d.year} {hour} +0200"
 
 
-def load_topics():
-    """Extrait les sujets du tableau markdown de BLOG_WORKFLOW.md."""
-    if not os.path.isfile(WORKFLOW_PATH):
-        raise Fail("BLOG_WORKFLOW.md introuvable : impossible de lister les sujets.")
-    topics = []
-    with open(WORKFLOW_PATH, encoding="utf-8") as f:
-        for line in f:
-            m = re.match(r"^\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$", line)
-            if m:
-                topics.append({
-                    "n": int(m.group(1)),
-                    "title": m.group(2).strip(),
-                    "angle": m.group(3).strip(),
-                })
+# ─────────────────────────────────────────────────────────────
+# Lecture de la configuration et du workflow
+# ─────────────────────────────────────────────────────────────
+
+def load_config() -> dict:
+    if not CONFIG_PATH.exists():
+        raise FileNotFoundError(f"Configuration introuvable : {CONFIG_PATH}")
+    cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    for key in ("site_name", "site_url", "sector", "location", "author",
+                "logo_path", "default_article_section", "internal_link_targets"):
+        if not cfg.get(key):
+            raise ValueError(f"Clé manquante ou vide dans blog-config.json : {key}")
+    cfg["site_url"] = cfg["site_url"].rstrip("/")
+    return cfg
+
+
+def parse_topics(workflow: str) -> list[dict]:
+    """Extrait les sujets de la section « sujets d'articles suggérés ».
+
+    Deux écritures sont acceptées, pour que le script suive la convention du
+    BLOG_WORKFLOW.md du site sans qu'on ait à retoucher ce dernier :
+      · liste numérotée      1. **Titre** — angle
+      · tableau markdown     | 1 | Titre | Angle |
+    """
+    section = re.split(r"^##\s+\d+\.\s+.*sujets d'articles suggérés.*$",
+                       workflow, flags=re.M | re.I)
+    if len(section) < 2:
+        raise ValueError("Section des sujets suggérés introuvable dans BLOG_WORKFLOW.md")
+    block = re.split(r"^##\s", section[1], flags=re.M)[0]
+
+    topics: list[dict] = []
+
+    # Forme 1 — liste numérotée avec titre en gras.
+    for num, line in re.findall(r"^(\d+)\.\s+(.*)$", block, flags=re.M):
+        title_m = re.search(r"\*\*(.+?)\*\*", line)
+        if not title_m:
+            continue
+        title = title_m.group(1).strip()
+        rest = line[title_m.end():].lstrip(" —-–").strip()
+        published_m = re.search(r"`([a-z0-9\-]+)`", line)
+        topics.append({
+            "num": int(num),
+            "title": title,
+            "brief": re.sub(r"[`*✅]", "", rest).strip(),
+            "declared_slug": published_m.group(1) if published_m else None,
+            "declared_published": "publié" in line.lower(),
+        })
+
+    # Forme 2 — tableau markdown | n | Sujet | Angle |, en ignorant l'en-tête
+    # et la ligne de séparation.
     if not topics:
-        raise Fail("Aucun sujet trouvé dans BLOG_WORKFLOW.md (tableau attendu).")
-    topics.sort(key=lambda t: t["n"])
+        for line in block.splitlines():
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) < 2 or not cells[0].isdigit():
+                continue
+            title = re.sub(r"\*\*(.+?)\*\*", r"\1", cells[1]).strip()
+            if not title:
+                continue
+            brief = cells[2] if len(cells) > 2 else ""
+            published_m = re.search(r"`([a-z0-9\-]+)`", line)
+            topics.append({
+                "num": int(cells[0]),
+                "title": title,
+                "brief": re.sub(r"[`*✅]", "", brief).strip(),
+                "declared_slug": published_m.group(1) if published_m else None,
+                "declared_published": "publié" in line.lower(),
+            })
+
+    if not topics:
+        raise ValueError("Aucun sujet exploitable trouvé dans BLOG_WORKFLOW.md")
+    topics.sort(key=lambda t: t["num"])
     return topics
 
 
-def load_editorial_rules():
-    """Récupère la section 'Règles éditoriales' pour la transmettre au modèle."""
-    with open(WORKFLOW_PATH, encoding="utf-8") as f:
-        content = f.read()
-    m = re.search(r"##\s*3\.\s*Règles éditoriales(.*?)\n---", content, re.S)
+def parse_editorial_rules(workflow: str) -> str:
+    """Récupère la section « Règles éditoriales » pour l'injecter dans le prompt."""
+    m = re.search(r"^##\s+\d+\.\s+Règles éditoriales.*?$(.*?)^##\s",
+                  workflow, flags=re.M | re.S)
     return m.group(1).strip() if m else ""
 
 
-# ---------------------------------------------------------------------------
-# Analyse du blog existant
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────
+# État du blog
+# ─────────────────────────────────────────────────────────────
 
-def scan_existing(config):
-    """Retourne (slugs existants, numéros de sujets déjà traités)."""
-    slugs, done = set(), set()
-    marker_re = re.compile(r"<!--\s*%s-topic:\s*(\d+)\s*-->" % re.escape(site_slug(config)))
-    if not os.path.isdir(BLOG_DIR):
-        raise Fail("Le dossier /blog/ est introuvable.")
-    for name in sorted(os.listdir(BLOG_DIR)):
-        page = os.path.join(BLOG_DIR, name, "index.html")
-        if not os.path.isfile(page):
-            continue
-        slugs.add(name)
-        with open(page, encoding="utf-8") as f:
-            m = marker_re.search(f.read())
+def scan_blog(marker_prefix: str) -> tuple[set[int], set[str]]:
+    """Retourne (numéros de sujets déjà traités, slugs existants)."""
+    done_nums: set[int] = set()
+    slugs: set[str] = set()
+    if not BLOG_DIR.exists():
+        return done_nums, slugs
+    for path in sorted(BLOG_DIR.glob("*/index.html")):
+        slug = path.parent.name
+        slugs.add(slug)
+        html = path.read_text(encoding="utf-8", errors="replace")
+        m = re.search(rf"<!--\s*{re.escape(marker_prefix)}:\s*(\d+)\s*-->", html)
         if m:
-            done.add(int(m.group(1)))
-    return slugs, done
+            done_nums.add(int(m.group(1)))
+    return done_nums, slugs
 
 
-def pick_template(config):
-    """
-    Choisit l'article de référence dont on relit le gabarit.
-    On privilégie un article rédigé à la main (sans marqueur d'automatisation),
-    à défaut le premier article par ordre alphabétique.
-    """
-    marker_re = re.compile(r"<!--\s*%s-topic:" % re.escape(site_slug(config)))
-    candidates = []
-    for name in sorted(os.listdir(BLOG_DIR)):
-        page = os.path.join(BLOG_DIR, name, "index.html")
-        if os.path.isfile(page):
-            with open(page, encoding="utf-8") as f:
-                candidates.append((name, page, bool(marker_re.search(f.read()))))
-    if not candidates:
-        raise Fail("Aucun article existant dans /blog/ : gabarit introuvable.")
-    handwritten = [c for c in candidates if not c[2]]
-    name, page, _ = (handwritten or candidates)[0]
-    log("  gabarit relu depuis : blog/%s/index.html" % name)
-    return page
+def pick_topic(topics: list[dict], done_nums: set[int], slugs: set[str]) -> dict | None:
+    """Premier sujet non traité, dans l'ordre de la liste."""
+    for topic in topics:
+        if topic["num"] in done_nums:
+            continue
+        # Sujet déclaré publié dans BLOG_WORKFLOW.md avec un slug existant.
+        if topic["declared_slug"] and topic["declared_slug"] in slugs:
+            continue
+        slug = slugify(topic["title"])
+        if slug in slugs:
+            # Le dossier existe déjà : on considère le sujet traité (idempotence).
+            continue
+        topic["slug"] = slug
+        return topic
+    return None
 
 
-# ---------------------------------------------------------------------------
-# Appel OpenAI
-# ---------------------------------------------------------------------------
+def load_reference_article(cfg: dict, slugs: set[str]) -> tuple[str, str]:
+    """Relit un article existant : il sert de gabarit (jamais de template en dur)."""
+    preferred = cfg.get("reference_article_slug")
+    candidates = [preferred] if preferred in slugs else []
+    candidates += sorted(s for s in slugs if s != preferred)
+    for slug in candidates:
+        path = BLOG_DIR / slug / "index.html"
+        if path.exists():
+            return slug, path.read_text(encoding="utf-8")
+    raise FileNotFoundError(
+        "Aucun article de référence dans /blog/ : impossible de déduire le gabarit.")
 
-SCHEMA_HINT = """Réponds UNIQUEMENT par un objet JSON valide, sans balise markdown, de la forme :
-{
-  "title": "titre de l'article, 55 à 70 caractères, avec la ville si c'est naturel",
-  "subtitle": "sous-titre court affiché sous le titre (6 à 12 mots)",
-  "meta_description": "résumé de 140 à 152 caractères maximum",
-  "excerpt": "résumé de 20 à 35 mots pour la carte de la page liste",
-  "tag": "catégorie courte, 1 à 3 mots",
-  "reading_time": 6,
-  "lead": "chapô d'introduction de 45 à 70 mots",
+
+# ─────────────────────────────────────────────────────────────
+# Rédaction : le modèle ne produit QUE du contenu éditorial
+# ─────────────────────────────────────────────────────────────
+
+def volume_rank(errors: list[str], wc: int) -> tuple[int, int]:
+    """Clé de comparaison entre deux copies : celle qui a le moins d'erreurs
+    prime, puis on préfère celle qui approche le mieux la cible. Compter les
+    erreurs plutôt que leur seule présence départage deux copies invalides."""
+    deficit = max(0, PROMPT_MIN_WORDS - wc)
+    excess = max(0, wc - MAX_WORDS)
+    return (len(errors), deficit + excess)
+
+
+def build_correction(cfg: dict, errors: list[str], wc: int) -> str:
+    """Message de reprise adressé au modèle. Il ne porte plus seulement sur le
+    volume : toute erreur de validation que le modèle peut corriger lui-même
+    (maillage interne, nombre de questions, longueur du title) y passe, tant
+    qu'il reste des appels au budget."""
+    demands = []
+    if wc < PROMPT_MIN_WORDS:
+        demands.append(
+            f"Tu as généré {wc} mots pour le corps (FAQ exclue), il en faut au moins "
+            f"{PROMPT_MIN_WORDS}. Développe chaque section : ajoute des paragraphes, "
+            "des exemples concrets, du contexte local, des nuances. Ne retire aucune "
+            "section.")
+    elif wc > MAX_WORDS:
+        demands.append(
+            f"Tu as généré {wc} mots pour le corps (FAQ exclue), c'est trop : il en "
+            f"faut au plus {PROMPT_MAX_WORDS}. Resserre chaque section sans en "
+            "supprimer aucune.")
+
+    if any("maillage" in e for e in errors):
+        targets = "\n".join(f"  {t}" for t in cfg["internal_link_targets"])
+        demands.append(
+            "Il manque des liens internes, c'est rédhibitoire. Insère dans le corps "
+            "au moins DEUX liens markdown vers ces chemins exacts, placés dans deux "
+            f"sections différentes :\n{targets}\net au moins UN lien vers /blog/. "
+            f"Écris-les sous la forme [libellé descriptif]({cfg['internal_link_targets'][0]}), "
+            "en recopiant le chemin tel quel. Ne touche à rien d'autre.")
+
+    others = [e for e in errors if "maillage" not in e and "volume" not in e]
+    if others:
+        demands.append("Corrige aussi ces points : " + " ; ".join(others) + ".")
+
+    if not demands:
+        demands.append("Reprends ton JSON en respectant toutes les consignes.")
+    return " ".join(demands) + " Réponds par le seul objet JSON complet."
+
+
+def build_prompt(cfg: dict, topic: dict, rules: str) -> tuple[str, str]:
+    """Prompt court : plus de gabarit HTML à recopier, plus de contraintes de
+    balisage. Le modèle écrit, le script fabrique la page."""
+    targets = cfg["internal_link_targets"]
+    targets_bullets = "\n".join(f"    {t}" for t in targets)
+
+    system = f"""Tu es rédacteur SEO/GEO senior pour une entreprise locale française.
+Tu écris du CONTENU, jamais du HTML : la mise en page est faite par ailleurs.
+
+Tu réponds UNIQUEMENT par un objet JSON valide, sans bloc de code markdown,
+respectant exactement ce schéma :
+
+{{
+  "title": "titre de la page, 55 à 60 caractères, sans le nom du site",
+  "h1": "titre affiché en haut de l'article, court et percutant",
+  "subtitle": "sous-titre affiché sous le h1, 6 à 12 mots, qui situe le sujet",
+  "breadcrumb": "libellé court pour le fil d'Ariane (2 à 4 mots)",
+  "meta_description": "résumé de moins de 155 caractères",
+  "lede": "chapô d'introduction, 60 à 90 mots, qui plante une situation concrète",
   "sections": [
-    {
-      "h2": "titre de section",
-      "blocks": [
-        {"type": "p", "text": "paragraphe"},
-        {"type": "h3", "text": "sous-titre"},
-        {"type": "ul", "items": ["puce 1", "puce 2"]},
-        {"type": "note", "text": "encadré À retenir, au maximum une fois dans l'article"}
-      ]
-    }
+    {{"h2": "titre de section",
+      "content": [
+        {{"type": "p", "text": "paragraphe"}},
+        {{"type": "h3", "text": "sous-titre"}},
+        {{"type": "ul", "items": ["élément", "élément"]}},
+        {{"type": "ol", "items": ["étape", "étape"]}}
+      ]}}
   ],
-  "faq": [{"question": "...", "answer": "réponse autoportante de 45 à 90 mots"}]
-}"""
+  "faq": [{{"question": "…", "answer": "…"}}]
+}}
 
+RÈGLES DE CONTENU
+- Volume : le corps (lede + sections, FAQ exclue) fait entre {PROMPT_MIN_WORDS} et
+  {PROMPT_MAX_WORDS} mots. Compte les mots avant de répondre. C'est la contrainte
+  la plus importante : en dessous de {PROMPT_MIN_WORDS} mots, la réponse est rejetée.
+- Vise 5 à 7 sections « h2 », chacune avec 3 à 5 paragraphes nourris. Un paragraphe
+  fait 60 à 110 mots : développe, donne des exemples concrets, du contexte local,
+  des nuances. Ne fais jamais de paragraphe d'une seule phrase.
+- FAQ : exactement {{faq_count}} questions, avec des réponses de 40 à 70 mots.
+  Elles ne comptent pas dans le volume du corps.
+- Balisage inline autorisé dans les textes, et lui seul :
+  **gras** et [libellé](/chemin). Les liens sont forcément internes.
+- Maillage interne — OBLIGATOIRE, la réponse est rejetée sans cela :
+  place AU MOINS DEUX liens markdown vers ces chemins exacts, dans deux
+  sections différentes du corps :
+{targets_bullets}
+  et AU MOINS UN lien vers /blog/.
+  Forme attendue, à recopier telle quelle : [libellé descriptif]({targets[0]})
+  Recopie les chemins sans les modifier, sans domaine et sans rien y ajouter.
+- Ancres de liens : les libellés des liens internes doivent être descriptifs et
+  se lire naturellement dans la phrase. Interdit : les libellés secs d'un seul
+  mot comme « ici », « blog », « carte », « contact ».
 
-def build_prompt(config, topic, facts, rules):
-    system = (
-        "Tu es rédacteur web SEO spécialisé dans la petite enfance. "
-        "Tu écris en français, au ton %s. "
-        "Tu n'inventes JAMAIS de prix, de montants, de pourcentages, de statistiques, "
-        "de noms de personnes ou de familles, de dates de création ou d'agrément, "
-        "ni de références réglementaires (articles de loi, décrets, seuils CAF). "
-        "En cas de doute tu restes qualitatif et tu renvoies vers un contact direct. "
-        "Tu n'utilises que les faits vérifiés qui te sont fournis."
-        % config["tone"]
-    )
-    user = f"""Rédige un article de blog pour le site de {config['site_name']}
-({config['sector']}), établi à {config['location']}.
+GARDE-FOUS — NON NÉGOCIABLES
+N'invente AUCUN prix, AUCUN chiffre d'affaires ou de fréquentation, AUCUN nom de
+client, AUCUNE date de fondation, AUCUNE norme ou réglementation, AUCUN label,
+AUCUN avis client, AUCUN horaire, AUCUNE adresse autre que ceux fournis ci-dessous.
+Si une information te manque, reformule pour t'en passer.
 
-SUJET IMPOSÉ : {topic['title']}
-ANGLE : {topic['angle']}
+FAITS AUTORISÉS (seule source de faits chiffrés, d'adresses et d'horaires)
+{{facts}}
+""".replace("{faq_count}", str(cfg["faq_questions_count"])).replace(
+        "{facts}", "\n".join(f"- {f}" for f in cfg.get("facts", [])))
 
-FAITS VÉRIFIÉS (les seuls chiffres et données autorisés) :
-{facts}
+    user = f"""Sujet n°{topic['num']} : {topic['title']}
+Angle : {topic['brief'] or "à développer librement dans le cadre des règles"}
 
-MOTS-CLÉS D'ANCRAGE LOCAL (à intégrer naturellement, sans bourrage) :
-{', '.join(config.get('geo_keywords', []))}
+Entreprise : {cfg['site_name']} — {cfg['sector']}.
+Zone : {cfg['location']}.
+Ton : {cfg['tone']}. Langue : français.
 
-CONTRAINTES :
-- environ {config['target_word_count']} mots pour le corps de l'article (hors FAQ), avec une tolérance de 15 %
-- 4 à 6 sections H2, chacune pouvant contenir des H3
-- au moins une liste à puces et au maximum un encadré "note"
-- exactement {config['faq_questions_count']} questions de FAQ, chaque réponse devant se suffire à elle-même si elle est citée hors contexte
-- au moins une mention naturelle de la ville et une du nom de la structure
-- pas de conclusion générique : terminer par un paragraphe utile invitant au contact
-- vouvoiement des parents, pas de jargon non expliqué
-- ne pas répéter le titre en début de chapô
+Mots-clés géographiques à faire vivre naturellement (pas de bourrage) :
+{', '.join(cfg['geo_keywords'])}.
 
-RÈGLES ÉDITORIALES DU SITE (à respecter strictement) :
+RÈGLES ÉDITORIALES DU BLOG
 {rules}
 
-{SCHEMA_HINT}"""
+Réponds par le seul objet JSON."""
+
     return system, user
 
 
-def call_openai(config, topic, facts, rules):
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise Fail("OPENAI_API_KEY absent de l'environnement.")
+def generate_content(cfg: dict, system: str, user: str,
+                     followup: list[dict] | None = None) -> dict:
     try:
         from openai import OpenAI
-    except ImportError:
-        raise Fail("Le paquet 'openai' n'est pas installé (pip install openai).")
+    except ImportError as exc:
+        raise RuntimeError(
+            "Le paquet 'openai' n'est pas installé (pip install openai).") from exc
 
-    system, user = build_prompt(config, topic, facts, rules)
-    log("  appel OpenAI (gpt-4o-mini, temperature 0.7)...")
-    try:
-        client = OpenAI(api_key=api_key)
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.7,
-            response_format={"type": "json_object"},
-            messages=[{"role": "system", "content": system},
-                      {"role": "user", "content": user}],
-        )
-        raw = resp.choices[0].message.content
-    except Exception as exc:
-        raise Fail("Appel OpenAI en échec : %s" % exc)
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise RuntimeError("Variable d'environnement OPENAI_API_KEY absente.")
 
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise Fail("Réponse OpenAI illisible (JSON invalide) : %s" % exc)
-    return data
-
-
-def mock_payload(config, topic):
-    """Contenu de démonstration : sert au test hors ligne (--mock)."""
-    ville = config["location"].split(",")[0]
-    para = ("Cette section détaille, exemples concrets à l'appui, ce que les familles "
-            "de %s observent au quotidien et la manière dont l'équipe de %s accompagne "
-            "chaque enfant à son rythme, sans jamais forcer les étapes." % (ville, config["site_name"]))
-    return {
-        "title": topic["title"],
-        "subtitle": "Repères pratiques pour les familles",
-        "meta_description": "%s : conseils pratiques de la micro-crèche Le Jardin des Merveilles à %s (65)." % (topic["title"], ville),
-        "excerpt": "Un tour d'horizon concret du sujet, avec les repères utiles aux parents et les réponses aux questions les plus fréquentes.",
-        "tag": "Conseils parents",
-        "reading_time": 6,
-        "lead": "Contenu de démonstration généré hors ligne pour valider la chaîne de publication. "
-                "En production, ce chapô est rédigé par le modèle à partir du sujet et des faits vérifiés.",
-        "sections": [
-            {"h2": "Premier axe du sujet", "blocks": [
-                {"type": "p", "text": para},
-                {"type": "h3", "text": "Un point de détail"},
-                {"type": "p", "text": para},
-            ]},
-            {"h2": "Deuxième axe du sujet", "blocks": [
-                {"type": "ul", "items": ["Premier repère pratique.",
-                                         "Deuxième repère pratique.",
-                                         "Troisième repère pratique."]},
-                {"type": "note", "text": "Le déroulé précis se construit toujours avec l'équipe, selon le rythme de l'enfant."},
-            ]},
-            {"h2": "En pratique à %s" % ville, "blocks": [{"type": "p", "text": para}]},
+    client = OpenAI()
+    log(f"Appel OpenAI (modèle {cfg['model']}, temperature {cfg['temperature']})…")
+    response = client.chat.completions.create(
+        model=cfg["model"],
+        temperature=cfg["temperature"],
+        max_tokens=9000,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+            *(followup or []),
         ],
-        "faq": [{"question": "Question de démonstration n°%d ?" % i,
-                 "answer": "Réponse de démonstration, autoportante, telle qu'elle serait rédigée en production par le modèle."}
-                for i in range(1, config["faq_questions_count"] + 1)],
+    )
+    content = (response.choices[0].message.content or "").strip()
+    usage = getattr(response, "usage", None)
+    if usage:
+        log(f"Tokens : {usage.prompt_tokens} entrée + "
+            f"{usage.completion_tokens} sortie = {usage.total_tokens}")
+    if not content:
+        raise ValueError("réponse vide")
+    return json.loads(content)
+
+
+def mock_content(cfg: dict, topic: dict) -> dict:
+    """Contenu de démonstration pour --mock : même forme que la sortie du modèle,
+    calibré pour dépasser la cible de volume."""
+    targets = cfg["internal_link_targets"]
+    filler = ("Sur le bassin tarbais, la question se pose différemment d'une famille à "
+              "l'autre selon les horaires de travail, le trajet quotidien et l'âge de "
+              "l'enfant. Entre Bordères-sur-l'Échez, Tarbes et Ibos les distances "
+              "restent courtes, ce qui change beaucoup de choses dans l'organisation "
+              "d'une semaine type. Les habitudes des uns et des autres varient, et "
+              "c'est précisément pour cela qu'il vaut la peine de détailler chaque cas "
+              "de figure plutôt que de donner une réponse unique qui ne conviendrait "
+              "qu'à une minorité des situations rencontrées au quotidien.")
+    sections = []
+    for i in range(7):          # 7 sections : le mock dépasse la cible de 1200
+        content = [{"type": "p", "text": filler}, {"type": "p", "text": filler}]
+        if i == 0:
+            content.insert(1, {"type": "h3", "text": "Un point de départ concret"})
+            content.append({"type": "p",
+                            "text": f"Notre approche est détaillée sur "
+                                    f"[la page du projet pédagogique]({targets[0]}) et "
+                                    f"[les modalités d'accueil]({targets[1]})."})
+        if i == 1:
+            content.append({"type": "ul", "items": ["Premier repère utile",
+                                                    "Deuxième repère utile",
+                                                    "Troisième repère utile"]})
+        if i == 2:
+            content.append({"type": "p",
+                            "text": "D'autres articles sont réunis sur [le blog de la "
+                                    "micro-crèche](/blog/)."})
+        sections.append({"h2": f"Section de démonstration n°{i + 1}", "content": content})
+    return {
+        "title": topic["title"][:70],
+        "h1": topic["title"],
+        "subtitle": "Repères pratiques pour les familles",
+        "breadcrumb": topic["title"][:28],
+        "meta_description": f"{topic['title'][:110]} — contenu de démonstration.",
+        "lede": filler,
+        "sections": sections,
+        "faq": [{"question": f"Question de démonstration n°{i + 1} ?",
+                 "answer": filler[:220]} for i in range(cfg["faq_questions_count"])],
     }
 
 
-def validate_payload(config, data):
-    for key in ("title", "meta_description", "lead", "sections", "faq"):
-        if not data.get(key):
-            raise Fail("Réponse du modèle incomplète : champ '%s' manquant." % key)
-    if not isinstance(data["sections"], list) or not data["sections"]:
-        raise Fail("Réponse du modèle : 'sections' vide.")
-    if len(data["faq"]) != config["faq_questions_count"]:
-        log("  ! FAQ : %d questions reçues au lieu de %d, ajustement."
-            % (len(data["faq"]), config["faq_questions_count"]))
-        data["faq"] = data["faq"][:config["faq_questions_count"]]
-        if not data["faq"]:
-            raise Fail("Réponse du modèle : FAQ vide.")
-    for item in data["faq"]:
-        if not item.get("question") or not item.get("answer"):
-            raise Fail("Réponse du modèle : une entrée de FAQ est incomplète.")
-    data["meta_description"] = clamp_description(data["meta_description"])
-    data.setdefault("subtitle", config["location"].split(",")[0])
-    data.setdefault("tag", "Conseils parents")
-    data.setdefault("excerpt", data["meta_description"])
-    try:
-        data["reading_time"] = max(3, int(data.get("reading_time") or 6))
-    except (TypeError, ValueError):
-        data["reading_time"] = 6
-    return data
+# ─────────────────────────────────────────────────────────────
+# Validation du contenu
+# ─────────────────────────────────────────────────────────────
+
+CONTENT_TYPES = {"p", "h3", "ul", "ol", "strong"}
 
 
-# ---------------------------------------------------------------------------
-# Rendu HTML (sur la base du gabarit relu)
-# ---------------------------------------------------------------------------
+def validate_content(data: dict, cfg: dict) -> list[str]:
+    """Contrôles bloquants sur le CONTENU. Tout ce que le script fabrique
+    lui-même (canonical, OG, JSON-LD, marqueur, fil d'Ariane, structure) ne peut
+    plus être erroné et n'est donc plus contrôlé ici."""
+    errors: list[str] = []
 
-def render_body(data):
-    out = ['<p class="post-lead">%s</p>' % esc(data["lead"])]
-    for section in data["sections"]:
-        if section.get("h2"):
-            out.append("<h2>%s</h2>" % esc(section["h2"]))
-        for block in section.get("blocks", []):
-            kind = block.get("type")
-            if kind == "h3" and block.get("text"):
-                out.append("<h3>%s</h3>" % esc(block["text"]))
-            elif kind == "p" and block.get("text"):
-                out.append("<p>%s</p>" % esc(block["text"]))
-            elif kind == "ul" and block.get("items"):
-                items = "".join("\n            <li>%s</li>" % esc(i) for i in block["items"])
-                out.append("<ul>%s\n          </ul>" % items)
-            elif kind == "note" and block.get("text"):
-                out.append('<div class="post-note">\n            <p><strong>À retenir :</strong> %s</p>\n          </div>'
-                           % esc(block["text"]))
-    inner = "\n\n          ".join(out)
-    return '<article class="post-body">\n\n          %s\n\n        </article>' % inner
+    if not isinstance(data, dict):
+        return ["la réponse n'est pas un objet JSON"]
+
+    for key in ("title", "h1", "breadcrumb", "meta_description", "lede"):
+        if not isinstance(data.get(key), str) or not data[key].strip():
+            errors.append(f"champ « {key} » absent ou vide")
+
+    title = data.get("title", "")
+    if isinstance(title, str) and not 40 <= len(title) <= 70:
+        errors.append(f"title hors bornes : {len(title)} caractères (attendu 40–70)")
+
+    desc = data.get("meta_description", "")
+    if isinstance(desc, str) and len(desc) >= 155:
+        errors.append(f"meta description trop longue ({len(desc)} caractères)")
+
+    sections = data.get("sections")
+    if not isinstance(sections, list) or not sections:
+        errors.append("aucune section")
+    else:
+        for i, section in enumerate(sections, 1):
+            if not isinstance(section, dict) or not section.get("h2"):
+                errors.append(f"section n°{i} sans titre h2")
+                continue
+            blocks = section.get("content")
+            if not isinstance(blocks, list) or not blocks:
+                errors.append(f"section n°{i} sans contenu")
+                continue
+            for block in blocks:
+                if not isinstance(block, dict):
+                    errors.append(f"section n°{i} : bloc de contenu invalide")
+                    continue
+                kind = block.get("type")
+                if kind not in CONTENT_TYPES:
+                    errors.append(f"section n°{i} : type de bloc inconnu ({kind!r})")
+                elif kind in ("ul", "ol"):
+                    items = block.get("items") or block.get("text")
+                    if not items:
+                        errors.append(f"section n°{i} : liste {kind} vide")
+                elif not block.get("text"):
+                    errors.append(f"section n°{i} : bloc {kind} sans texte")
+
+    faq = data.get("faq")
+    if not isinstance(faq, list) or len(faq) != cfg["faq_questions_count"]:
+        errors.append(f"{cfg['faq_questions_count']} questions attendues dans la FAQ "
+                      f"(trouvé : {len(faq) if isinstance(faq, list) else 0})")
+    else:
+        for i, item in enumerate(faq, 1):
+            if not isinstance(item, dict) or not item.get("question") or not item.get("answer"):
+                errors.append(f"question de FAQ n°{i} incomplète")
+
+    # Maillage interne : toujours dépendant du modèle, donc toujours contrôlé.
+    body = " ".join(
+        [data.get("lede", "")] +
+        [b.get("text", "") + " " + " ".join(b.get("items") or [])
+         for s in (sections if isinstance(sections, list) else [])
+         if isinstance(s, dict)
+         for b in (s.get("content") or []) if isinstance(b, dict)])
+    links = re.findall(r"\[[^\]]+\]\((/[^)\s]*)\)", body)
+    targets = cfg["internal_link_targets"]
+    if sum(1 for h in links if h in targets) < 2:
+        errors.append("maillage interne : moins de deux liens vers "
+                      + " ou ".join(targets))
+    if not any(h.startswith("/blog") for h in links):
+        errors.append("maillage interne : aucun lien vers /blog/")
+
+    wc = content_word_count(data)
+    if not MIN_WORDS <= wc <= MAX_WORDS:
+        errors.append(f"volume hors bornes : {wc} mots (attendu {MIN_WORDS}–{MAX_WORDS})")
+
+    return errors
 
 
-def render_faq(data):
-    out = ['<h2 class="title-green mt-14">Questions fréquentes des parents</h2>']
-    for item in data["faq"]:
-        out.append('<div class="faq-item">\n          <h3>%s</h3>\n          <p>%s</p>\n        </div>'
-                   % (esc(item["question"]), esc(item["answer"])))
-    return "\n\n        ".join(out) + "\n\n        "
+# ─────────────────────────────────────────────────────────────
+# Assemblage du HTML à partir du gabarit
+# ─────────────────────────────────────────────────────────────
+
+def split_template(reference_html: str) -> dict:
+    """Découpe le gabarit relu en morceaux réutilisables.
+
+    Conventions propres à ce site, différentes de celles du site de référence :
+      · les trois blocs JSON-LD sont AU MILIEU du <head>, suivis du bloc
+        « Fonts & icons » et des feuilles de style — on garde donc un head_top
+        et un head_tail, sinon l'assemblage perdrait les polices et le CSS ;
+      · le <main> s'ouvre sur un hero décoré de six SVG inline qu'il ne faut
+        surtout pas régénérer : il est repris tel quel, seuls le <h1> et le
+        sous-titre y sont remplacés ;
+      · le bloc de retour au blog (.post-back) joue le rôle du CTA.
+    """
+    parts = {}
+
+    head_end = reference_html.find("</head>")
+    if head_end == -1:
+        raise ValueError("Gabarit : </head> introuvable.")
+    head_region = reference_html[:head_end]
+
+    # Blocs JSON-LD, avec le commentaire qui les précède éventuellement.
+    ld_blocks = list(re.finditer(
+        r'(?:[ \t]*<!--[^>]*-->[ \t]*\n)?[ \t]*<script type="application/ld\+json">'
+        r'.*?</script>[ \t]*\n', head_region, re.S))
+    if not ld_blocks:
+        raise ValueError("Gabarit : aucun bloc JSON-LD dans le <head>.")
+    parts["head_top"] = head_region[:ld_blocks[0].start()]
+    parts["head_tail"] = head_region[ld_blocks[-1].end():]
+    # Conservé pour relire l'éditeur et l'auteur depuis le JSON-LD du gabarit.
+    parts["ld_source"] = head_region[ld_blocks[0].start():ld_blocks[-1].end()]
+
+    body_start = reference_html.find("<body>")
+    main_start = reference_html.find("<main>")
+    main_end = reference_html.find("</main>")
+    if -1 in (body_start, main_start, main_end):
+        raise ValueError("Gabarit : <body>, <main> ou </main> introuvable.")
+    # Entre </head> et <main> : ouverture du body, header de site et menu mobile.
+    parts["header"] = reference_html[head_end + len("</head>"):main_start]
+    parts["footer"] = reference_html[main_end:]        # </main> jusqu'à </html>
+
+    main_region = reference_html[main_start:main_end]
+
+    hero = re.search(r'<section class="hero[^"]*">.*?</section>', main_region, re.S)
+    if not hero:
+        raise ValueError("Gabarit : section hero introuvable dans le <main>.")
+    parts["hero"] = hero.group()
+
+    back = re.search(r'<div class="post-back">.*?</div>', main_region, re.S)
+    parts["post_back"] = back.group().strip() if back else ""
+    return parts
 
 
-def replace_meta(html, pattern, value):
-    new, n = re.subn(pattern, lambda m: m.group(1) + value + m.group(3), html, count=1)
-    if n == 0:
-        raise Fail("Gabarit inattendu : balise introuvable (%s)." % pattern[:60])
-    return new
+def build_head(parts: dict, cfg: dict, data: dict, url: str, today: dict) -> str:
+    """Reprend le <head> du gabarit et n'y remplace que ce qui est propre à
+    l'article. Les valeurs viennent du script, jamais du modèle en HTML.
+
+    Les balises de ce site se ferment en « "> » et non en « " /> » : les motifs
+    tolèrent les deux écritures."""
+    head = parts["head_top"]
+    title = plain(data["title"])
+    desc = plain(data["meta_description"])
+    img = f"{cfg['site_url']}{cfg['og_image']}"
+
+    def swap(pattern: str, replacement: str, text: str) -> str:
+        new, n = re.subn(pattern, lambda _: replacement, text, count=1)
+        if n != 1:
+            raise ValueError(f"Gabarit : motif introuvable dans le <head> — {pattern}")
+        return new
+
+    def meta(attr: str, name: str, value: str) -> tuple[str, str]:
+        return (rf'<meta {attr}="{re.escape(name)}" content="[^"]*"\s*/?>',
+                f'<meta {attr}="{name}" content="{esc(value)}">')
+
+    head = swap(r"<title>.*?</title>", f"<title>{esc(title)}</title>", head)
+    head = swap(*meta("name", "description", desc), head)
+    head = swap(r'<link rel="canonical" href="[^"]*"\s*/?>',
+                f'<link rel="canonical" href="{url}">', head)
+    head = swap(*meta("property", "og:title", title), head)
+    head = swap(*meta("property", "og:description", desc), head)
+    head = swap(*meta("property", "og:url", url), head)
+    head = swap(*meta("property", "og:image", img), head)
+    head = swap(*meta("property", "article:published_time", today["iso"]), head)
+    head = swap(*meta("property", "article:modified_time", today["iso"]), head)
+    head = swap(*meta("name", "twitter:title", title), head)
+    head = swap(*meta("name", "twitter:description", desc), head)
+    head = swap(*meta("name", "twitter:image", img), head)
+    return head
 
 
-def rewrite_jsonld(html, data, config, url, today, breadcrumb_name):
-    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S)
-    if len(blocks) < 3:
-        raise Fail("Gabarit inattendu : 3 blocs JSON-LD attendus, %d trouvé(s)." % len(blocks))
-    iso = today.isoformat()
+def build_jsonld(parts: dict, cfg: dict, data: dict, url: str, today: dict) -> str:
+    """Les trois blocs JSON-LD, sérialisés par json.dumps : ils sont valides
+    par construction, ce que le modèle ne pouvait pas garantir.
 
-    def rebuild(raw):
-        obj = json.loads(raw)
-        kind = obj.get("@type")
-        if kind == "Article":
-            obj["headline"] = data["title"]
-            obj["description"] = data["meta_description"]
-            obj["datePublished"] = iso
-            obj["dateModified"] = iso
-            obj["mainEntityOfPage"]["@id"] = url
-        elif kind == "BreadcrumbList":
-            last = obj["itemListElement"][-1]
-            last["name"] = breadcrumb_name
-            last["item"] = url
-        elif kind == "FAQPage":
-            obj["mainEntity"] = [
-                {"@type": "Question", "name": item["question"],
-                 "acceptedAnswer": {"@type": "Answer", "text": item["answer"]}}
-                for item in data["faq"]
-            ]
-        else:
-            return None
-        return json.dumps(obj, ensure_ascii=False, indent=2)
+    L'éditeur (bloc « publisher », de type ChildCare avec son adresse et sa zone
+    desservie) et l'auteur sont RELUS depuis le JSON-LD du gabarit : ces données
+    n'ont ainsi qu'une seule source de vérité, l'article de référence."""
+    img = f"{cfg['site_url']}{cfg['og_image']}"
 
-    for raw in blocks:
-        rebuilt = rebuild(raw)
-        if rebuilt is None:
+    publisher = author = None
+    for raw in re.findall(r'<script type="application/ld\+json">(.*?)</script>',
+                          parts.get("ld_source", ""), re.S):
+        try:
+            obj = json.loads(raw)
+        except json.JSONDecodeError:
             continue
-        indented = "\n".join(("  " + l if l.strip() else l) for l in rebuilt.splitlines())
-        html = html.replace(
-            '<script type="application/ld+json">%s</script>' % raw,
-            '<script type="application/ld+json">\n%s\n  </script>' % indented,
-            1)
-    return html
+        if obj.get("@type") == "Article":
+            publisher = obj.get("publisher")
+            author = obj.get("author")
+            break
+    if not publisher:
+        publisher = {"@type": "Organization", "name": cfg["site_name"],
+                     "url": f"{cfg['site_url']}/",
+                     "logo": {"@type": "ImageObject",
+                              "url": f"{cfg['site_url']}{cfg['logo_path']}"}}
+    if not author:
+        author = {"@type": "Organization", "name": cfg["author"],
+                  "url": f"{cfg['site_url']}/"}
+
+    article = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "@id": f"{url}#article",
+        "headline": plain(data["h1"]),
+        "description": plain(data["meta_description"]),
+        "inLanguage": "fr-FR",
+        "datePublished": today["iso"],
+        "dateModified": today["iso"],
+        "image": img,
+        "mainEntityOfPage": {"@type": "WebPage", "@id": url},
+        "author": author,
+        "publisher": publisher,
+        "articleSection": cfg["default_article_section"],
+        "keywords": ", ".join(cfg["geo_keywords"][:6]),
+    }
+    breadcrumb = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Accueil",
+             "item": f"{cfg['site_url']}/"},
+            {"@type": "ListItem", "position": 2, "name": "Blog",
+             "item": f"{cfg['site_url']}/blog/"},
+            {"@type": "ListItem", "position": 3, "name": plain(data["breadcrumb"]),
+             "item": url},
+        ],
+    }
+    faqpage = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {"@type": "Question", "name": plain(q["question"]),
+             "acceptedAnswer": {"@type": "Answer", "text": plain(q["answer"])}}
+            for q in data["faq"]
+        ],
+    }
+    out = []
+    for comment, payload in (("Article", article), ("Fil d'ariane", breadcrumb),
+                             ("FAQ", faqpage)):
+        body = json.dumps(payload, ensure_ascii=False, indent=2)
+        body = "\n".join(("  " + l if l.strip() else l) for l in body.splitlines())
+        out.append(f'  <!-- Données structurées : {comment} -->\n'
+                   f'  <script type="application/ld+json">\n{body}\n  </script>\n')
+    return "\n".join(out)
 
 
-def build_article_html(template_html, data, config, slug, topic_n, today):
-    url = "%s/blog/%s/" % (config["site_url"], slug)
-    iso = today.isoformat()
-    title = data["title"]
-    breadcrumb_name = title if len(title) <= 60 else title[:57].rsplit(" ", 1)[0] + "…"
-
-    html = template_html
-    html = re.sub(r"<title>.*?</title>", lambda m: "<title>%s</title>" % esc(title), html, count=1, flags=re.S)
-    html = replace_meta(html, r'(<meta name="description" content=")(.*?)(">)', esc(data["meta_description"]))
-    html = replace_meta(html, r'(<link rel="canonical" href=")(.*?)(">)', url)
-    html = replace_meta(html, r'(<meta property="og:title" content=")(.*?)(">)', esc(title))
-    html = replace_meta(html, r'(<meta property="og:description" content=")(.*?)(">)', esc(data["meta_description"]))
-    html = replace_meta(html, r'(<meta property="og:url" content=")(.*?)(">)', url)
-    html = replace_meta(html, r'(<meta property="article:published_time" content=")(.*?)(">)', iso)
-    html = replace_meta(html, r'(<meta property="article:modified_time" content=")(.*?)(">)', iso)
-    html = replace_meta(html, r'(<meta name="twitter:title" content=")(.*?)(">)', esc(breadcrumb_name))
-    html = replace_meta(html, r'(<meta name="twitter:description" content=")(.*?)(">)', esc(data["meta_description"]))
-
-    html = rewrite_jsonld(html, data, config, url, today, breadcrumb_name)
-
-    # Hero : h1 + sous-titre
-    html = re.sub(r"<h1>.*?</h1>", lambda m: "<h1>%s</h1>" % esc(title), html, count=1, flags=re.S)
-    html = re.sub(r'<p class="subtitle">.*?</p>',
-                  lambda m: '<p class="subtitle">%s</p>' % esc(data["subtitle"]),
-                  html, count=1, flags=re.S)
-
-    # Fil d'ariane
-    html = re.sub(
-        r'(<nav class="blog-breadcrumb" aria-label="Fil d\'ariane">).*?(</nav>)',
-        lambda m: ('%s\n          <a href="/index.html">Accueil</a> <span>›</span> '
-                   '<a href="/blog/">Blog</a> <span>›</span> %s\n        %s'
-                   % (m.group(1), esc(breadcrumb_name), m.group(2))),
-        html, count=1, flags=re.S)
-
-    # Ligne de date
-    html = re.sub(
-        r'<p class="post-meta-line">.*?</p>',
-        lambda m: ('<p class="post-meta-line">\n          Publié le <time datetime="%s">%s</time> · %s · Lecture %d min\n        </p>'
-                   % (iso, date_fr(today), esc(config["site_name"]), data["reading_time"])),
-        html, count=1, flags=re.S)
-
-    # Corps
-    body = render_body(data)
-    html, n = re.subn(r'<article class="post-body">.*?</article>', lambda m: body, html, count=1, flags=re.S)
-    if n == 0:
-        raise Fail("Gabarit inattendu : bloc <article class=\"post-body\"> introuvable.")
-
-    # FAQ
-    faq = render_faq(data)
-    html, n = re.subn(r'<h2 class="title-green mt-14">.*?(?=<div class="post-back">)',
-                      lambda m: faq, html, count=1, flags=re.S)
-    if n == 0:
-        raise Fail("Gabarit inattendu : bloc FAQ introuvable.")
-
-    # Marqueur d'idempotence
-    marker = "<!-- %s-topic: %d -->" % (site_slug(config), topic_n)
-    html = html.replace("<!DOCTYPE html>", "<!DOCTYPE html>\n%s" % marker, 1)
-    return html
+def render_blocks(blocks: list[dict], indent: str = "          ") -> str:
+    """Contenu d'une section, converti en HTML. Le modèle n'écrit que du texte :
+    c'est ici, et seulement ici, que le balisage apparaît."""
+    out = []
+    for block in blocks:
+        kind = block.get("type")
+        if kind in ("ul", "ol"):
+            items = block.get("items")
+            if not items:
+                items = [s for s in re.split(r"\s*[;\n]\s*", block.get("text", "")) if s]
+            lines = "\n".join(f"{indent}  <li>{inline(i)}</li>" for i in items)
+            out.append(f"{indent}<{kind}>\n{lines}\n{indent}</{kind}>")
+        elif kind == "h3":
+            out.append(f"{indent}<h3>{inline(block['text'])}</h3>")
+        elif kind == "strong":
+            out.append(f"{indent}<p><strong>{inline(block['text'])}</strong></p>")
+        else:
+            out.append(f"{indent}<p>{inline(block['text'])}</p>")
+    return "\n\n".join(out)
 
 
-# ---------------------------------------------------------------------------
-# Mise à jour des fichiers annexes
-# ---------------------------------------------------------------------------
+def hero_subtitle(data: dict) -> str:
+    """Sous-titre du hero. Le modèle peut le fournir ; sinon on le dérive de la
+    meta description, tronquée sur une frontière de mot."""
+    text = (data.get("subtitle") or "").strip()
+    if not text:
+        text = plain(data["meta_description"])
+        if len(text) > 72:
+            text = text[:72].rsplit(" ", 1)[0].rstrip(" ,;:—-")
+    return text
 
-def update_blog_index(data, slug, today, dry_run):
-    with open(BLOG_INDEX, encoding="utf-8") as f:
-        html = f.read()
-    href = "/blog/%s/" % slug
-    if 'href="%s"' % href in html:
-        log("  = carte déjà présente dans blog/index.html")
-        return
+
+def build_main(parts: dict, cfg: dict, data: dict, today: dict) -> str:
+    """Le <main> complet, aux conventions de ce site : hero repris du gabarit
+    (SVG décoratifs intacts), puis la section de contenu — fil d'ariane, ligne
+    de date, <article class="post-body">, FAQ en .faq-item et retour au blog."""
+    reading = max(3, round(content_word_count(data) / 200))
+
+    hero = parts["hero"]
+    hero, n = re.subn(r"<h1>.*?</h1>", lambda _: f"<h1>{inline(data['h1'])}</h1>",
+                      hero, count=1, flags=re.S)
+    if n != 1:
+        raise ValueError("Gabarit : <h1> introuvable dans le hero.")
+    hero = re.sub(r'<p class="subtitle">.*?</p>',
+                  lambda _: f'<p class="subtitle">{esc(hero_subtitle(data))}</p>',
+                  hero, count=1, flags=re.S)
+
+    body = "\n\n".join(
+        f"          <h2>{inline(s['h2'])}</h2>\n\n{render_blocks(s['content'])}"
+        for s in data["sections"])
+
+    faq = "\n\n".join(
+        f'        <div class="faq-item">\n'
+        f'          <h3>{inline(q["question"])}</h3>\n'
+        f'          <p>{inline(q["answer"])}</p>\n'
+        f'        </div>'
+        for q in data["faq"])
+
+    back = f"\n\n        {parts['post_back']}" if parts["post_back"] else ""
+
+    return f"""<main>
+
+    {hero}
+
+    <!-- ================== ARTICLE ================== -->
+    <section class="section bg-clear">
+      <div class="container max-w-4xl">
+
+        <nav class="blog-breadcrumb" aria-label="Fil d'ariane">
+          <a href="/index.html">Accueil</a> <span>›</span> <a href="/blog/">Blog</a> <span>›</span> {inline(data['breadcrumb'])}
+        </nav>
+
+        <p class="post-meta-line">
+          Publié le <time datetime="{today['iso']}">{today['fr']}</time> · {esc(cfg['site_name'])} · Lecture {reading} min
+        </p>
+
+        <article class="post-body">
+
+          <p class="post-lead">{inline(data['lede'])}</p>
+
+{body}
+
+        </article>
+
+        <!-- ================== FAQ ================== -->
+        <h2 class="title-green mt-14">Questions fréquentes des parents</h2>
+
+{faq}{back}
+
+      </div>
+    </section>
+
+  """
+
+
+def assemble(reference_html: str, cfg: dict, topic: dict,
+             data: dict, today: dict) -> str:
+    """Fabrique la page complète. Toute la structure vient d'ici : le modèle
+    n'a produit que du texte."""
+    parts = split_template(reference_html)
+    url = f"{cfg['site_url']}/blog/{topic['slug']}/"
+    marker = f"<!-- {cfg['topic_marker_prefix']}: {topic['num']} -->"
+
+    head = build_head(parts, cfg, data, url, today)
+    jsonld = build_jsonld(parts, cfg, data, url, today)
+    header = parts["header"].replace("<body>", f"<body>\n{marker}", 1)
+
+    return (head + jsonld + parts["head_tail"] + "</head>" + header
+            + build_main(parts, cfg, data, today) + parts["footer"])
+
+
+def validate_assembled(html: str, cfg: dict, topic: dict) -> list[str]:
+    """Filet de sécurité sur l'assemblage : ces contrôles ne portent plus sur le
+    modèle mais sur notre propre code. Ils doivent toujours passer."""
+    errors = []
+    url = f"{cfg['site_url']}/blog/{topic['slug']}/"
+    if not html.startswith("<!DOCTYPE html>"):
+        errors.append("assemblage : DOCTYPE absent")
+    if not html.rstrip().endswith("</html>"):
+        errors.append("assemblage : </html> absent")
+    if f"{cfg['topic_marker_prefix']}: {topic['num']}" not in html:
+        errors.append("assemblage : marqueur d'idempotence absent")
+    if html.count("<h1") != 1:
+        errors.append(f"assemblage : {html.count('<h1')} balise(s) h1")
+    if f'rel="canonical" href="{url}"' not in html:
+        errors.append("assemblage : canonical incorrect")
+    if "/css/style.css" not in html or "/assets/blog.css" not in html:
+        errors.append("assemblage : feuilles de style du site absentes")
+    if "</main>" not in html or "site-footer" not in html:
+        errors.append("assemblage : structure de page incomplète")
+    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S)
+    if len(blocks) != 3:
+        errors.append(f"assemblage : {len(blocks)} blocs JSON-LD au lieu de 3")
+    for i, block in enumerate(blocks, 1):
+        try:
+            json.loads(block)
+        except json.JSONDecodeError as exc:
+            errors.append(f"assemblage : JSON-LD n°{i} invalide ({exc})")
+    if html.count('class="faq-item"') != cfg["faq_questions_count"]:
+        errors.append("assemblage : nombre de questions de FAQ incorrect")
+    return errors
+
+
+def extract(data: dict) -> dict:
+    """Métadonnées utilisées par blog/index.html, rss.xml et llms.txt."""
+    return {
+        "title": plain(data["title"]),
+        "description": plain(data["meta_description"]),
+        "h1": plain(data["h1"]),
+        "headline": plain(data["h1"]),
+        "lead": plain(data["lede"]),
+        "words": content_word_count(data),
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# Mises à jour des fichiers annexes
+# ─────────────────────────────────────────────────────────────
+
+def update_blog_index(cfg: dict, topic: dict, meta: dict, today: dict) -> str:
+    """Ajoute la carte de l'article en tête de la grille de blog/index.html,
+    au format .post-card de ce site (lien enveloppant, tag, h3, méta, extrait)."""
+    html = BLOG_INDEX.read_text(encoding="utf-8")
+    url = f"/blog/{topic['slug']}/"
+    if url in html:
+        log("blog/index.html contient déjà cet article : pas de doublon ajouté.")
+        return html
+
+    headline = meta["headline"] or meta["h1"] or topic["title"]
+    teaser = meta["lead"] or meta["description"]
+    if len(teaser) > 260:
+        teaser = teaser[:257].rsplit(" ", 1)[0] + "…"
+    reading = max(3, round(meta["words"] / 200))
+
+    card = f"""
+
+          <a href="{url}" class="post-card">
+            <span class="post-tag">{esc(cfg['default_article_section'])}</span>
+            <h3>{esc(headline)}</h3>
+            <div class="post-meta"><time datetime="{today['iso']}">{today['fr']}</time> · Lecture {reading} min</div>
+            <p class="post-excerpt">{esc(teaser)}</p>
+            <span class="card-cta">Lire l'article <i class="fa-solid fa-arrow-right"></i></span>
+          </a>
+"""
     anchor = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">'
     if anchor not in html:
-        raise Fail("blog/index.html : grille d'articles introuvable.")
-    card = ('%s\n\n          <a href="%s" class="post-card">\n'
-            '            <span class="post-tag">%s</span>\n'
-            '            <h3>%s</h3>\n'
-            '            <div class="post-meta"><time datetime="%s">%s</time> · Lecture %d min</div>\n'
-            '            <p class="post-excerpt">%s</p>\n'
-            '            <span class="card-cta">Lire l\'article <i class="fa-solid fa-arrow-right"></i></span>\n'
-            '          </a>\n'
-            % (anchor, href, esc(data["tag"]), esc(data["title"]),
-               today.isoformat(), date_fr(today), data["reading_time"], esc(data["excerpt"])))
-    html = html.replace(anchor, card, 1)
-    if not dry_run:
-        with open(BLOG_INDEX, "w", encoding="utf-8") as f:
-            f.write(html)
-    log("  + carte ajoutée dans blog/index.html")
+        raise ValueError("Point d'insertion de la grille introuvable dans blog/index.html")
+    return html.replace(anchor, anchor + card, 1)
 
 
-def update_sitemap(config, slug, today, dry_run):
-    url = "%s/blog/%s/" % (config["site_url"], slug)
-    with open(SITEMAP, encoding="utf-8") as f:
-        xml = f.read()
-    if "<loc>%s</loc>" % url in xml:
-        log("  = URL déjà présente dans sitemap.xml")
-        return
-    iso = today.isoformat()
-    entry = ("  <url>\n    <loc>%s</loc>\n    <lastmod>%s</lastmod>\n"
-             "    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n</urlset>"
-             % (url, iso))
-    if "</urlset>" not in xml:
-        raise Fail("sitemap.xml : balise </urlset> introuvable.")
-    xml = xml.replace("</urlset>", entry, 1)
-    # rafraîchit le lastmod de la page liste du blog
-    xml = re.sub(r"(<loc>%s/blog/</loc>\s*<lastmod>)[^<]+(</lastmod>)" % re.escape(config["site_url"]),
-                 lambda m: m.group(1) + iso + m.group(2), xml, count=1)
-    ET.fromstring(xml)
-    if not dry_run:
-        with open(SITEMAP, "w", encoding="utf-8") as f:
-            f.write(xml)
-    log("  + URL ajoutée dans sitemap.xml")
+def update_sitemap(cfg: dict, topic: dict, today: dict) -> str:
+    xml = SITEMAP.read_text(encoding="utf-8")
+    loc = f"{cfg['site_url']}/blog/{topic['slug']}/"
+    if loc in xml:
+        log("sitemap.xml contient déjà cette URL.")
+        return xml
+
+    xml = re.sub(
+        rf"(<loc>{re.escape(cfg['site_url'])}/blog/</loc>\s*<lastmod>)[^<]*(</lastmod>)",
+        rf"\g<1>{today['iso']}\g<2>", xml)
+
+    entry = f"""  <url>
+    <loc>{loc}</loc>
+    <lastmod>{today['iso']}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>"""
+    return xml.replace("</urlset>", entry, 1)
 
 
-def update_rss(config, data, slug, today, dry_run):
-    url = "%s/blog/%s/" % (config["site_url"], slug)
-    with open(RSS, encoding="utf-8") as f:
-        xml = f.read()
-    if "<link>%s</link>" % url in xml:
-        log("  = article déjà présent dans rss.xml")
-        return
-    stamp = dt.datetime(today.year, today.month, today.day, 9, 0, 0).strftime(
-        "%a, %d %b %Y %H:%M:%S +0000")
-    item = ('    <item>\n'
-            '      <title>%s</title>\n'
-            '      <link>%s</link>\n'
-            '      <guid isPermaLink="true">%s</guid>\n'
-            '      <pubDate>%s</pubDate>\n'
-            '      <description>%s</description>\n'
-            '    </item>\n\n'
-            % (esc(data["title"]), url, url, stamp, esc(data["excerpt"])))
-    anchor = re.search(r'\n(\s*)<item>', xml)
-    if anchor:
-        xml = xml[:anchor.start() + 1] + item + xml[anchor.start() + 1:]
-    else:
-        xml = xml.replace("  </channel>", item + "  </channel>", 1)
-    xml = re.sub(r"(<lastBuildDate>)[^<]+(</lastBuildDate>)",
-                 lambda m: m.group(1) + stamp + m.group(2), xml, count=1)
-    ET.fromstring(xml)
-    if not dry_run:
-        with open(RSS, "w", encoding="utf-8") as f:
-            f.write(xml)
-    log("  + item ajouté dans rss.xml")
+def update_rss(cfg: dict, topic: dict, meta: dict, today: dict) -> str:
+    xml = RSS.read_text(encoding="utf-8")
+    link = f"{cfg['site_url']}/blog/{topic['slug']}/"
+    if link in xml:
+        log("rss.xml contient déjà cet article.")
+        return xml
+
+    def esc(text: str) -> str:
+        return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+    headline = meta["headline"] or meta["h1"] or topic["title"]
+    teaser = meta["lead"] or meta["description"]
+    pub = rfc822(today["date"])
+
+    xml = re.sub(r"<lastBuildDate>[^<]*</lastBuildDate>",
+                 f"<lastBuildDate>{pub}</lastBuildDate>", xml, count=1)
+
+    item = f"""    <item>
+      <title>{esc(headline)}</title>
+      <link>{link}</link>
+      <guid isPermaLink="true">{link}</guid>
+      <pubDate>{pub}</pubDate>
+      <category>Blog</category>
+      <description>{esc(teaser)}</description>
+    </item>
+
+"""
+    if "<item>" in xml:
+        idx = xml.index("    <item>")
+        return xml[:idx] + item + xml[idx:]
+    return xml.replace("  </channel>", item + "  </channel>", 1)
 
 
-# ---------------------------------------------------------------------------
-# Faits vérifiés (extraits de llms.txt, jamais inventés)
-# ---------------------------------------------------------------------------
+def update_llms(cfg: dict, topic: dict, meta: dict) -> str | None:
+    if not LLMS.exists():
+        return None
+    text = LLMS.read_text(encoding="utf-8")
+    url = f"{cfg['site_url']}/blog/{topic['slug']}/"
+    if url in text:
+        log("llms.txt référence déjà cet article.")
+        return text
+    headline = meta["headline"] or meta["h1"] or topic["title"]
+    summary = (meta["description"] or "").rstrip(".")
+    line = f"- [{headline}]({url}) : {summary}.\n"
+    m = re.search(r"^## Blog\s*$(.*?)(?=^## |\Z)", text, flags=re.M | re.S)
+    if not m:
+        log("Avertissement : section « ## Blog » introuvable dans llms.txt.")
+        return text
+    block = m.group(1).rstrip("\n")
+    return text[:m.start(1)] + block + "\n" + line + "\n" + text[m.end(1):]
 
-def load_facts():
-    path = os.path.join(ROOT, "llms.txt")
-    if not os.path.isfile(path):
-        return "(aucun fait complémentaire disponible : rester strictement qualitatif)"
-    with open(path, encoding="utf-8") as f:
-        content = f.read()
-    m = re.search(r"##\s*Identité et coordonnées.*?\n(.*?)\n##", content, re.S)
-    block = m.group(1).strip() if m else ""
-    intro = re.search(r"^>\s?(.*?)(?:\n\n|\n#)", content, re.S | re.M)
-    if intro:
-        block = re.sub(r"^>\s?", "", intro.group(1), flags=re.M).strip() + "\n\n" + block
-    return block
+
+# ─────────────────────────────────────────────────────────────
+# Point d'entrée
+# ─────────────────────────────────────────────────────────────
+
+def refresh_entries(cfg: dict, topic: dict, meta: dict) -> list[str]:
+    """Après réécriture d'un article existant, resynchronise le teaser de
+    blog/index.html et l'entrée RSS : les updaters sont idempotents par URL et
+    laisseraient sinon en place le texte de l'ancienne version."""
+    touched = []
+    slug = topic["slug"]
+    teaser = meta["lead"] or meta["description"]
+    if len(teaser) > 260:
+        teaser = teaser[:257].rsplit(" ", 1)[0] + "…"
+
+    html = BLOG_INDEX.read_text(encoding="utf-8")
+    card = re.search(r'<a href="/blog/' + re.escape(slug)
+                     + r'/" class="post-card">(?:(?!</a>).)*?</a>', html, re.S)
+    if card:
+        new_card = re.sub(r'(<p class="post-excerpt">)[^<]*',
+                          lambda m: m.group(1) + esc(teaser), card.group(), count=1)
+        new_card = re.sub(r"(<h3>)[^<]*", lambda m: m.group(1) + esc(meta["headline"]),
+                          new_card, count=1)
+        if new_card != card.group():
+            BLOG_INDEX.write_text(html.replace(card.group(), new_card, 1), encoding="utf-8")
+            touched.append("blog/index.html")
+
+    xml = RSS.read_text(encoding="utf-8")
+    item = re.search(r"<item>(?:(?!</item>).)*?" + re.escape(slug)
+                     + r"(?:(?!</item>).)*?</item>", xml, re.S)
+    if item:
+        new_item = re.sub(r"<description>.*?</description>",
+                          f"<description>{esc(teaser)}</description>",
+                          item.group(), count=1, flags=re.S)
+        new_item = re.sub(r"<title>.*?</title>",
+                          f"<title>{esc(meta['headline'])}</title>",
+                          new_item, count=1, flags=re.S)
+        if new_item != item.group():
+            RSS.write_text(xml.replace(item.group(), new_item, 1), encoding="utf-8")
+            touched.append("rss.xml")
+    return touched
 
 
-# ---------------------------------------------------------------------------
-# Programme principal
-# ---------------------------------------------------------------------------
-
-def main():
-    parser = argparse.ArgumentParser(description="Génère un article de blog.")
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Génère un article de blog Le Jardin des Merveilles.")
     parser.add_argument("--dry-run", action="store_true",
-                        help="génère et affiche sans écrire aucun fichier")
+                        help="n'écrit aucun fichier, affiche le résultat")
     parser.add_argument("--mock", action="store_true",
-                        help="contenu de démonstration hors ligne, sans appel OpenAI")
-    parser.add_argument("--topic", type=int, default=None,
-                        help="force le numéro de sujet à traiter")
+                        help="n'appelle pas l'API OpenAI (contenu de démonstration)")
+    parser.add_argument("--rewrite", metavar="SLUG",
+                        help="réécrit un article existant et écrase son fichier")
     args = parser.parse_args()
 
-    log("=== Génération d'article — %s ===" % dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
     if args.dry_run:
-        log("MODE DRY-RUN : aucun fichier ne sera écrit.")
+        log("Mode DRY-RUN : aucun fichier ne sera écrit.")
 
-    config = load_config()
-    log("Site : %s (%s)" % (config["site_name"], config["site_url"]))
+    try:
+        cfg = load_config()
+        log(f"Site : {cfg['site_name']} — {cfg['site_url']}")
 
-    topics = load_topics()
-    slugs, done = scan_existing(config)
-    log("Sujets disponibles : %d — articles publiés : %d — sujets déjà traités : %s"
-        % (len(topics), len(slugs), sorted(done) or "aucun"))
+        if not WORKFLOW_PATH.exists():
+            fail(f"BLOG_WORKFLOW.md introuvable ({WORKFLOW_PATH}).")
+            return EXIT_ERROR
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
-    if args.topic is not None:
-        topic = next((t for t in topics if t["n"] == args.topic), None)
-        if topic is None:
-            raise Fail("Sujet n°%d absent de BLOG_WORKFLOW.md." % args.topic)
-    else:
-        topic = next((t for t in topics if t["n"] not in done), None)
+        topics = parse_topics(workflow)
+        rules = parse_editorial_rules(workflow)
+        log(f"{len(topics)} sujets listés dans BLOG_WORKFLOW.md.")
+        if not rules:
+            log("Avertissement : règles éditoriales non trouvées, prompt allégé.")
 
-    if topic is None:
-        log("Aucun sujet non traité : rien à publier. Ajoutez des sujets dans BLOG_WORKFLOW.md.")
-        return EXIT_NOTHING
+        done, slugs = scan_blog(cfg["topic_marker_prefix"])
+        log(f"Articles déjà en ligne : {len(slugs)} — sujets marqués traités : "
+            f"{sorted(done) if done else 'aucun'}")
 
-    slug = slugify(topic["title"])
-    log("Sujet retenu : n°%d — %s" % (topic["n"], topic["title"]))
-    log("Slug : %s" % slug)
+        if args.rewrite:
+            # Réécriture : on retrouve le sujet par le marqueur du fichier existant.
+            target_file = BLOG_DIR / args.rewrite / "index.html"
+            if not target_file.exists():
+                fail(f"Article introuvable : {target_file.relative_to(ROOT)}")
+                return EXIT_ERROR
+            existing = target_file.read_text(encoding="utf-8")
+            m = re.search(rf"<!--\s*{re.escape(cfg['topic_marker_prefix'])}:\s*(\d+)\s*-->",
+                          existing)
+            if not m:
+                fail(f"Aucun marqueur de sujet dans {target_file.relative_to(ROOT)} : "
+                     "impossible de savoir quel sujet réécrire.")
+                return EXIT_ERROR
+            num = int(m.group(1))
+            topic = next((t for t in topics if t["num"] == num), None)
+            if topic is None:
+                fail(f"Le sujet n°{num} n'existe plus dans BLOG_WORKFLOW.md.")
+                return EXIT_ERROR
+            topic["slug"] = args.rewrite
+            log(f"Mode RÉÉCRITURE : sujet n°{num} — {topic['title']}")
+        else:
+            topic = pick_topic(topics, done, slugs)
+            if topic is None:
+                log("Aucun sujet restant à traiter. Ajoutez des sujets dans "
+                    "BLOG_WORKFLOW.md (section « sujets d'articles suggérés »).")
+                return EXIT_NOTHING_TODO
+            log(f"Sujet retenu : n°{topic['num']} — {topic['title']}")
+            target_file = BLOG_DIR / topic["slug"] / "index.html"
+            if target_file.exists():
+                fail(f"Le fichier existe déjà : {target_file.relative_to(ROOT)} — "
+                     "rien n'est écrasé (--rewrite pour le régénérer).")
+                return EXIT_NOTHING_TODO
 
-    if slug in slugs:
-        log("L'article blog/%s/ existe déjà : rien à faire (pas de réécriture)." % slug)
-        return EXIT_NOTHING
+        log(f"Slug : {topic['slug']}")
 
-    target_dir = os.path.join(BLOG_DIR, slug)
-    target = os.path.join(target_dir, "index.html")
-    if os.path.exists(target):
-        log("Le fichier %s existe déjà : abandon sans modification." % target)
-        return EXIT_NOTHING
+        ref_slug, reference_html = load_reference_article(cfg, slugs)
+        log(f"Gabarit relu depuis /blog/{ref_slug}/index.html "
+            f"({len(reference_html)} caractères).")
 
-    template_path = pick_template(config)
-    with open(template_path, encoding="utf-8") as f:
-        template_html = f.read()
+        today_date = dt.date.today()
+        today = {"date": today_date, "iso": today_date.isoformat(),
+                 "fr": fr_date(today_date)}
 
-    facts = load_facts()
-    rules = load_editorial_rules()
+        system = user = None
+        if args.mock:
+            log("Mode MOCK : contenu de démonstration, aucun appel API.")
+            data = mock_content(cfg, topic)
+        else:
+            system, user = build_prompt(cfg, topic, rules)
+            log(f"Prompt construit ({len(system)} car. système + "
+                f"{len(user)} car. utilisateur).")
+            data = generate_content(cfg, system, user)
 
-    if args.mock:
-        log("  mode --mock : contenu de démonstration, aucun appel réseau.")
-        data = mock_payload(config, topic)
-    else:
-        data = call_openai(config, topic, facts, rules)
-    data = validate_payload(config, data)
+        errors = validate_content(data, cfg)
+        wc = content_word_count(data)
 
-    today = dt.date.today()
-    html = build_article_html(template_html, data, config, slug, topic["n"], today)
+        # Rattrapage : on relance tant qu'il reste une erreur que le modèle peut
+        # corriger — volume hors cible, maillage absent, etc. —, dans la
+        # limite de MAX_CALLS appels au total. Chaque reprise repart de la
+        # MEILLEURE copie obtenue jusque-là, pas de la dernière : le modèle
+        # développe alors un texte déjà long au lieu de repartir d'un plus court.
+        calls = 1
+        while (not args.mock and calls < MAX_CALLS
+               and (errors or not PROMPT_MIN_WORDS <= wc <= MAX_WORDS)):
+            correction = build_correction(cfg, errors, wc)
+            calls += 1
+            reason = (f"{wc} mots, cible {PROMPT_MIN_WORDS}"
+                      if not PROMPT_MIN_WORDS <= wc <= MAX_WORDS
+                      else f"{len(errors)} erreur(s) de validation")
+            log(f"Copie à reprendre ({reason}) — tentative {calls}/{MAX_CALLS}.")
+            try:
+                retry = generate_content(cfg, system, user, followup=[
+                    {"role": "assistant", "content": json.dumps(data, ensure_ascii=False)},
+                    {"role": "user", "content": correction},
+                ])
+            except (ValueError, json.JSONDecodeError) as exc:
+                fail(f"Tentative {calls} inexploitable : {exc}")
+                break
+            retry_errors = validate_content(retry, cfg)
+            retry_wc = content_word_count(retry)
+            log(f"Tentative {calls} : {retry_wc} mots, {len(retry_errors)} erreur(s).")
+            if volume_rank(retry_errors, retry_wc) < volume_rank(errors, wc):
+                data, errors, wc = retry, retry_errors, retry_wc
+                log(f"Copie retenue : la n°{calls}.")
+            else:
+                log("Copie retenue : la précédente (la nouvelle n'est pas meilleure).")
+        if calls > 1:
+            log(f"{calls} appels OpenAI au total pour cet article.")
 
-    words = word_count(re.search(r'<article class="post-body">.*?</article>', html, re.S).group(0))
-    log("  titre : %s" % data["title"])
-    log("  corps : %d mots (cible %d)" % (words, config["target_word_count"]))
-    if not 900 <= words <= 2000:
-        log("  ! volume inhabituel : à relire manuellement.")
+        if errors:
+            fail("Contenu rejeté par la validation — aucun fichier écrit :")
+            for err in errors:
+                fail(f"  · {err}")
+            return EXIT_ERROR
 
-    if args.dry_run:
-        log("--- APERÇU (dry-run, rien n'a été écrit) ---")
-        preview = re.sub(r"<[^>]+>", " ", re.search(r'<article class="post-body">.*?</article>', html, re.S).group(0))
-        log(" ".join(preview.split())[:1200])
-        update_blog_index(data, slug, today, dry_run=True)
-        update_sitemap(config, slug, today, dry_run=True)
-        update_rss(config, data, slug, today, dry_run=True)
-        log("--- FIN DRY-RUN ---")
+        html = assemble(reference_html, cfg, topic, data, today)
+        build_errors = validate_assembled(html, cfg, topic)
+        if build_errors:
+            fail("Assemblage HTML incorrect — aucun fichier écrit :")
+            for err in build_errors:
+                fail(f"  · {err}")
+            return EXIT_ERROR
+
+        meta = extract(data)
+        log("Validation OK.")
+        log(f"  Titre       : {meta['title']}")
+        log(f"  Description : {meta['description']} ({len(meta['description'])} car.)")
+        log(f"  Volume      : {meta['words']} mots (corps hors FAQ)")
+        log(f"  Page        : {len(html)} caractères, "
+            f"{len(data['sections'])} sections")
+
+        if args.dry_run:
+            print("\n" + "═" * 70)
+            print("APERÇU (aucun fichier écrit)")
+            print("═" * 70)
+            print(f"Sujet       : n°{topic['num']} — {topic['title']}")
+            print(f"Slug        : {topic['slug']}")
+            print(f"URL         : {cfg['site_url']}/blog/{topic['slug']}/")
+            print(f"Titre       : {meta['title']}")
+            print(f"H1          : {meta['h1']}")
+            print(f"Description : {meta['description']}")
+            print(f"Mots        : {meta['words']}")
+            print("-" * 70)
+            for section in data["sections"]:
+                print(f"  H2 · {plain(section['h2'])}")
+            print("═" * 70)
+            log("DRY-RUN terminé, rien n'a été modifié.")
+            return EXIT_OK
+
+        # ── Écriture (au plus tard possible, une fois tout validé) ──
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        target_file.write_text(html, encoding="utf-8")
+        log(f"Écrit : {target_file.relative_to(ROOT)}")
+
+        if args.rewrite:
+            for name in refresh_entries(cfg, topic, meta):
+                log(f"Resynchronisé : {name}")
+            log(f"Terminé — article n°{topic['num']} réécrit : "
+                f"{cfg['site_url']}/blog/{topic['slug']}/")
+            return EXIT_OK
+
+        blog_index_html = update_blog_index(cfg, topic, meta, today)
+        sitemap_xml = update_sitemap(cfg, topic, today)
+        rss_xml = update_rss(cfg, topic, meta, today)
+        llms_txt = update_llms(cfg, topic, meta)
+
+        BLOG_INDEX.write_text(blog_index_html, encoding="utf-8")
+        log("Mis à jour : blog/index.html")
+        SITEMAP.write_text(sitemap_xml, encoding="utf-8")
+        log("Mis à jour : sitemap.xml")
+        RSS.write_text(rss_xml, encoding="utf-8")
+        log("Mis à jour : rss.xml")
+        if llms_txt is not None:
+            LLMS.write_text(llms_txt, encoding="utf-8")
+            log("Mis à jour : llms.txt")
+
+        log(f"Terminé — article n°{topic['num']} publié : "
+            f"{cfg['site_url']}/blog/{topic['slug']}/")
         return EXIT_OK
 
-    os.makedirs(target_dir, exist_ok=True)
-    with open(target, "w", encoding="utf-8") as f:
-        f.write(html)
-    log("  + blog/%s/index.html écrit" % slug)
-
-    update_blog_index(data, slug, today, dry_run=False)
-    update_sitemap(config, slug, today, dry_run=False)
-    update_rss(config, data, slug, today, dry_run=False)
-
-    log("Article publié : %s/blog/%s/" % (config["site_url"], slug))
-    return EXIT_OK
+    except Exception as exc:                      # noqa: BLE001
+        fail(f"{type(exc).__name__} : {exc}")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except Fail as exc:
-        print("ERREUR : %s" % exc, file=sys.stderr, flush=True)
-        sys.exit(EXIT_ERROR)
-    except Exception as exc:  # filet de sécurité : jamais de commit sur une erreur inattendue
-        print("ERREUR INATTENDUE : %r" % exc, file=sys.stderr, flush=True)
-        sys.exit(EXIT_ERROR)
+    sys.exit(main())

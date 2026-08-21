@@ -1,82 +1,188 @@
-# Génération automatique d'articles
+# Automatisation du blog — Le Jardin des Merveilles
 
-Un article de blog est généré et publié **chaque lundi à 9h00 UTC** par le workflow
-`.github/workflows/blog-auto.yml`, qui exécute `scripts/generate-article.py`.
+Un article de blog est généré et publié automatiquement **chaque lundi à 9h00 UTC**
+par le workflow [`.github/workflows/blog-auto.yml`](../.github/workflows/blog-auto.yml).
 
-## 1. Ajouter la clé API (à faire une seule fois)
+## 1. Mettre la clé API en place (à faire une seule fois)
 
-Sur GitHub : **Settings → Secrets and variables → Actions → New repository secret**
+1. Créer une clé sur <https://platform.openai.com/api-keys>.
+2. Dans le dépôt GitHub : **Settings → Secrets and variables → Actions → New repository secret**.
+3. Nom : `OPENAI_API_KEY` — Valeur : la clé (`sk-…`).
 
-| Champ | Valeur |
-|-------|--------|
-| Name  | `OPENAI_API_KEY` |
-| Secret | la clé `sk-...` du compte OpenAI |
-
-Sans ce secret, le workflow échoue proprement avec le message
-`OPENAI_API_KEY absent de l'environnement` et **ne publie rien**.
-
-## 2. Lancer une exécution manuelle
-
-Depuis GitHub : onglet **Actions → Blog auto → Run workflow**. Deux options facultatives :
-
-- `topic` : force le numéro de sujet (liste dans `BLOG_WORKFLOW.md`, section 4)
-- `dry_run` : simule sans écrire ni publier
-
-En local :
+En ligne de commande :
 
 ```bash
-export OPENAI_API_KEY="sk-..."
-pip install openai
-
-python3 scripts/generate-article.py --dry-run     # simulation, aucun fichier écrit
-python3 scripts/generate-article.py               # génère et écrit (sans committer)
-python3 scripts/generate-article.py --topic 7     # force un sujet précis
-python3 scripts/generate-article.py --dry-run --mock  # test hors ligne, sans clé ni réseau
+gh secret set OPENAI_API_KEY -R cazacomm/microcr-che-borderes
 ```
 
-Codes de sortie : `0` article généré · `78` aucun nouveau sujet (cas normal, pas d'erreur) · `1` erreur.
+Sans ce secret, le workflow échoue proprement (code 1) sans rien committer.
 
-## 3. Ce que fait le script
+## 2. Lancer manuellement
 
-1. lit `blog-config.json` et les 12 sujets du tableau de `BLOG_WORKFLOW.md` ;
-2. scanne `/blog/*/index.html`, relève les marqueurs `<!-- micro-creche-borderes-topic: N -->`
-   et retient le **premier sujet non traité** dans l'ordre ;
-3. relit le gabarit HTML depuis l'article existant rédigé à la main — le template n'est
-   jamais dupliqué dans le script, il suit donc automatiquement toute évolution du design ;
-4. appelle OpenAI (`gpt-4o-mini`, `temperature` 0.7) en lui transmettant les règles
-   éditoriales de `BLOG_WORKFLOW.md` et les seuls faits vérifiés issus de `llms.txt` ;
-5. écrit `/blog/<slug>/index.html` (metas, Open Graph, Twitter Card, JSON-LD
-   Article + BreadcrumbList + FAQPage régénérés), puis met à jour `blog/index.html`,
-   `sitemap.xml` et `rss.xml`.
+**Depuis GitHub** : onglet *Actions* → *Blog auto — Le Jardin des Merveilles* → *Run workflow*.
+La case **dry_run** génère l'article et affiche le résultat dans les logs **sans rien écrire ni pousser**.
 
-Header, menu mobile, décors SVG du hero, CTA et footer sont recopiés **à l'identique**
-depuis le gabarit. `css/style.css` et `assets/blog.css` ne sont jamais modifiés.
+**En local** :
 
-**Idempotence** : un sujet déjà marqué, un slug déjà présent ou un fichier existant
-provoquent une sortie en code 78 sans aucune écriture. Rejouer le workflow ne peut pas
-écraser un article publié.
+```bash
+pip install openai
+export OPENAI_API_KEY="sk-..."
 
-## 4. Coût estimé
+python3 scripts/generate-article.py --dry-run   # simulation, aucun fichier touché
+python3 scripts/generate-article.py             # génère et écrit (à committer soi-même)
+python3 scripts/generate-article.py --mock      # teste la tuyauterie sans appeler l'API
+```
 
-Un article ≈ 1 500 tokens en entrée et 3 000 en sortie avec `gpt-4o-mini`.
-Aux tarifs publics d'OpenAI à date (≈ 0,15 $ / M tokens en entrée, 0,60 $ / M en sortie) :
+`--mock` ne produit **aucun contenu éditorial réel** : il recopie le gabarit pour vérifier
+que le choix du sujet, la validation et les mises à jour de fichiers fonctionnent.
 
-| Volume | Coût indicatif |
-|--------|----------------|
-| 1 article | ≈ 0,002 $ |
-| 52 articles (1 an) | ≈ 0,11 $ |
+## 3. Codes de sortie
 
-Les tarifs OpenAI évoluent : vérifier sur <https://openai.com/api/pricing/>.
-Le coût GitHub Actions est nul sur un dépôt public.
+| Code | Signification | Effet sur le workflow |
+|---|---|---|
+| `0` | Article généré et validé | commit + push |
+| `78` | Aucun sujet restant dans `BLOG_WORKFLOW.md` | arrêt propre, pas de commit |
+| `1` | Erreur (API, validation, fichier manquant) | échec visible, **aucun fichier écrit** |
 
-## 5. Après épuisement des 12 sujets
+## 4. Ce que fait le script
 
-Le workflow sort en code 78 sans rien publier. Il suffit d'ajouter des lignes au tableau
-de la section 4 de `BLOG_WORKFLOW.md` (même format `| n | Sujet | Angle |`) pour relancer
-la production.
+1. Lit `blog-config.json`. Tout ce qui est propre au site y vit — rien de
+   spécifique n'est codé en dur dans le script, ce qui permet de le réutiliser
+   tel quel sur un autre site en ne changeant que ce fichier :
+   `site_name`, `site_url`, `sector`, `location`, `author`, `tone`,
+   `geo_keywords`, `facts` (seuls faits chiffrés que le modèle a le droit
+   d'employer), `og_image`, `logo_path`, `default_article_section`,
+   `reference_article_slug`, `topic_marker_prefix`, `model`, `temperature`,
+   `faq_questions_count`, `target_word_count`, `language`.
+   Les clés obligatoires sont contrôlées au démarrage : il vaut mieux échouer
+   tout de suite avec un message clair que publier un JSON-LD portant le logo
+   d'un autre site.
+2. Extrait de `BLOG_WORKFLOW.md` les 12 sujets suggérés **et** les règles éditoriales,
+   qui sont injectées telles quelles dans le prompt.
+3. Scanne `/blog/*/index.html` : un article généré porte un marqueur
+   `<!-- micro-creche-borderes-topic: N -->` juste après `<body>`. Un sujet marqué n'est jamais repris.
+4. Choisit le premier sujet non traité, dans l'ordre de la liste.
+5. **Relit l'article de référence** (`blog/adaptation-micro-creche-borderes-sur-lechez/index.html`)
+   et s'en sert de gabarit. Aucun template HTML n'est dupliqué dans le script :
+   header, menu mobile, hero et ses SVG décoratifs, favicons, polices, feuilles de
+   style et bloc de retour au blog en sont extraits à chaque exécution, donc si le
+   gabarit évolue les articles suivants suivent.
+6. Appelle OpenAI (`gpt-4o`, `temperature` 0.7, `max_tokens` 9000, réponse forcée
+   en `json_object`) et lui demande **uniquement le contenu éditorial** :
 
-## 6. Relecture
+   ```json
+   {"title": …, "h1": …, "subtitle": …, "breadcrumb": …, "meta_description": …, "lede": …,
+    "sections": [{"h2": …, "content": [{"type": "p|h3|ul|ol|strong", "text": …}]}],
+    "faq": [{"question": …, "answer": …}]}
+   ```
 
-Le contenu est publié sans validation humaine : **relire l'article du lundi** est
-recommandé, en particulier l'absence de montants, de chiffres précis et de références
-réglementaires, que le prompt interdit mais qu'aucun modèle ne garantit à 100 %.
+   Le modèle **n'écrit plus une ligne de HTML**. Auparavant il régénérait la page
+   entière : les deux tiers de ses tokens de sortie partaient en balisage
+   (`<head>`, JSON-LD, header, footer), ce qui plafonnait le corps rédigé autour
+   de 850 mots quelle que soit la consigne — 764, 844, 848 mots sur des runs
+   successifs, y compris en demandant 1600. Le prompt est passé de 23 450 à
+   ~4 700 caractères.
+
+   Seul balisage autorisé dans les textes : `**gras**` et `[libellé](/chemin)`.
+   Les liens sont restreints aux chemins internes, un lien externe est donc
+   structurellement impossible. Tout le reste est échappé — le modèle ne peut pas
+   injecter de HTML.
+7. **Valide le contenu** avant toute écriture : champs présents, longueur du
+   `title` (40–70) et de la `meta_description` (< 155), types de blocs connus,
+   exactement 5 questions de FAQ, maillage interne (≥ 2 liens vers
+   `/pedagogie.html`, `/tarifs.html` ou `/contact.html` et ≥ 1 vers `/blog/`), volume entre
+   900 et 1900 mots. Le moindre échec ⇒ code 1, **rien n'est écrit**.
+
+   Les contrôles sur le canonical, l'Open Graph, la Twitter Card, le marqueur,
+   le `<h1>` unique et la validité des JSON-LD **ont disparu de cette étape** :
+   ces éléments sont désormais fabriqués par le script (`json.dumps` pour les
+   JSON-LD) et ne peuvent plus être faux. Ils restent vérifiés une fois la page
+   assemblée, par `validate_assembled()`, qui contrôle notre propre code et non
+   le modèle.
+
+   Le volume se compte sur le **contenu** (`content_word_count()`), pas sur du
+   HTML : `lede` + sections, FAQ exclue. Plus de balises ni de boilerplate dans
+   le total.
+
+   *Rattrapage :* le script relance un appel avec un prompt correctif dès que le
+   corps passe **sous la cible de 1200 mots** — même si la validation passerait —
+   **ou** qu'une erreur de validation que le modèle peut corriger subsiste
+   (maillage interne absent, nombre de questions, longueur du `title`). Le message
+   de reprise est construit à partir des erreurs réellement relevées
+   (`build_correction()`). Il garde ensuite **la meilleure des copies** : celle qui
+   a le moins d'erreurs, puis la plus proche de la cible de volume, et chaque
+   reprise repart de la meilleure copie obtenue. Plafond strict : **3 appels**
+   (`MAX_CALLS`) — le modèle rend ~600 mots en première passe et gagne 60 à 75 %
+   par reprise, deux appels plafonnent vers 1000-1100.
+
+   Le maillage interne est le point sur lequel le modèle achoppe le plus : la
+   consigne liste les chemins un par un et montre la forme attendue. Les cibles
+   viennent de `internal_link_targets` dans `blog-config.json` — elles servent à la
+   fois au prompt, à la validation et au message de reprise, et sont tenues courtes
+   (trois cibles) : six ancres noyées dans une phrase donnaient un article au bon
+   volume mais sans un seul lien.
+8. **Assemble la page** : `<head>` repris du gabarit avec seulement les champs
+   propres à l'article remplacés (title, description, canonical, OG, Twitter,
+   dates), les trois blocs JSON-LD sérialisés depuis le contenu, le marqueur
+   d'idempotence inséré après `<body>`, le `<main>` reconstruit autour du hero repris
+   tel quel, header et footer inchangés.
+9. Écrit `blog/<slug>/index.html`, puis met à jour `blog/index.html` (carte + JSON-LD),
+   `sitemap.xml`, `rss.xml` et `llms.txt`.
+
+## 4 bis. Réécrire un article existant
+
+```bash
+python scripts/generate-article.py --rewrite <slug>
+```
+
+Régénère un article déjà publié et **écrase** son fichier. Le sujet est retrouvé
+via le marqueur `<!-- micro-creche-borderes-topic: N -->` présent dans le fichier, donc aucun
+risque de se tromper de sujet. Le teaser de `blog/index.html` et l'entrée
+`rss.xml` sont resynchronisés (`refresh_entries()`) : les updaters normaux sont
+idempotents par URL et laisseraient sinon le texte de l'ancienne version.
+
+Disponible aussi depuis Actions : champ **rewrite** du `workflow_dispatch`.
+
+## 5. Idempotence
+
+- Le slug est **déterministe** : même titre de sujet ⇒ même slug.
+- Si `blog/<slug>/index.html` existe déjà, le script s'arrête en code 78 sans rien écraser.
+- Les mises à jour de `blog/index.html`, `sitemap.xml`, `rss.xml` et `llms.txt` vérifient
+  d'abord si l'URL est déjà présente : rejouer le workflow ne crée jamais de doublon.
+- Aucun article existant n'est jamais modifié ni supprimé.
+
+## 6. Coût estimé
+
+Tarifs OpenAI `gpt-4o` en vigueur à la mise en place — **à revérifier sur
+<https://openai.com/api/pricing/>**, ils changent.
+
+Par exécution : environ **2 000 tokens en entrée** (le gabarit n'est plus dans le prompt)
+et **4 000 à 7 000 tokens en sortie**, multipliés par le nombre d'appels de rattrapage
+(3 au maximum).
+
+L'ordre de grandeur est de **quelques centimes d'euro par article**, soit **bien moins d'un
+euro par an** pour une publication hebdomadaire. Le poste de coût réel n'est pas l'API mais
+la relecture humaine.
+
+Pour vérifier la consommation réelle : les logs du workflow affichent le décompte exact
+des tokens de chaque exécution (`[blog] Tokens : … entrée + … sortie = …`).
+
+## 7. Ajouter des sujets
+
+La réserve de sujets est la section **« Douze sujets d'articles suggérés »** de
+[`BLOG_WORKFLOW.md`](../BLOG_WORKFLOW.md). Quand elle est épuisée, le workflow sort en
+code 78 chaque lundi sans rien casser. La liste est écrite ici sous forme de tableau : il
+suffit d'ajouter des lignes au même format pour relancer la machine :
+
+```markdown
+| 13 | Titre du sujet | Angle, intention de recherche visée |
+```
+
+Le parseur accepte aussi la forme en liste numérotée `13. **Titre** — angle`.
+
+## 8. Relecture
+
+La génération est automatique, la responsabilité éditoriale ne l'est pas.
+Après chaque publication, vérifier au minimum : aucun prix ni chiffre inventé, adresses
+exactes, ton conforme. Les règles complètes sont dans `BLOG_WORKFLOW.md`, section
+« Règles éditoriales ».
