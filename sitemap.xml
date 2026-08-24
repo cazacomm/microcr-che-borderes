@@ -32,7 +32,7 @@
   </url>
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/</loc>
-    <lastmod>2026-08-21</lastmod>
+    <lastmod>2026-08-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -51,6 +51,12 @@
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/deroule-journee-type-micro-creche-7h30-18h30/</loc>
     <lastmod>2026-08-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.micro-creche-borderes.fr/blog/motricite-libre-selon-emmi-pikler-cela-change/</loc>
+    <lastmod>2026-08-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
