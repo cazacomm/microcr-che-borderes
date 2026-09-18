@@ -31,7 +31,11 @@ export OPENAI_API_KEY="sk-..."
 python3 scripts/generate-article.py --dry-run   # simulation, aucun fichier touché
 python3 scripts/generate-article.py             # génère et écrit (à committer soi-même)
 python3 scripts/generate-article.py --mock      # teste la tuyauterie sans appeler l'API
+python3 scripts/generate-article.py --topics-only   # regarnit la réserve, ne rédige rien
 ```
+
+`--topics-only` est incompatible avec `--rewrite` (le premier ne rédige aucun article,
+le second en réécrit un) : la combinaison échoue immédiatement en code 1.
 
 `--mock` ne produit **aucun contenu éditorial réel** : il recopie le gabarit pour vérifier
 que le choix du sujet, la validation et les mises à jour de fichiers fonctionnent.
@@ -41,7 +45,7 @@ que le choix du sujet, la validation et les mises à jour de fichiers fonctionne
 | Code | Signification | Effet sur le workflow |
 |---|---|---|
 | `0` | Article généré et validé | commit + push |
-| `78` | Aucun sujet restant dans `BLOG_WORKFLOW.md` | arrêt propre, pas de commit |
+| `78` | Aucun sujet restant dans `BLOG_WORKFLOW.md` | arrêt propre, pas de commit — devenu rare depuis le réapprovisionnement automatique |
 | `1` | Erreur (API, validation, fichier manquant) | échec visible, **aucun fichier écrit** |
 
 ## 4. Ce que fait le script
@@ -57,7 +61,7 @@ que le choix du sujet, la validation et les mises à jour de fichiers fonctionne
    Les clés obligatoires sont contrôlées au démarrage : il vaut mieux échouer
    tout de suite avec un message clair que publier un JSON-LD portant le logo
    d'un autre site.
-2. Extrait de `BLOG_WORKFLOW.md` les 12 sujets suggérés **et** les règles éditoriales,
+2. Extrait de `BLOG_WORKFLOW.md` les sujets suggérés **et** les règles éditoriales,
    qui sont injectées telles quelles dans le prompt.
 3. Scanne `/blog/*/index.html` : un article généré porte un marqueur
    `<!-- micro-creche-borderes-topic: N -->` juste après `<body>`. Un sujet marqué n'est jamais repris.
@@ -160,6 +164,10 @@ Par exécution : environ **2 000 tokens en entrée** (le gabarit n'est plus dans
 et **4 000 à 7 000 tokens en sortie**, multipliés par le nombre d'appels de rattrapage
 (3 au maximum).
 
+À cela s'ajoute, seulement quand la réserve passe sous le seuil, le réapprovisionnement :
+1 à 2 appels rendant 40 sujets, soit quelques milliers de tokens de sortie — de l'ordre
+d'une poignée de centimes, et pas à chaque publication.
+
 L'ordre de grandeur est de **quelques centimes d'euro par article**, soit **bien moins d'un
 euro par an** pour une publication hebdomadaire. Le poste de coût réel n'est pas l'API mais
 la relecture humaine.
@@ -167,18 +175,48 @@ la relecture humaine.
 Pour vérifier la consommation réelle : les logs du workflow affichent le décompte exact
 des tokens de chaque exécution (`[blog] Tokens : … entrée + … sortie = …`).
 
-## 7. Ajouter des sujets
+## 7. La réserve de sujets
 
-La réserve de sujets est la section **« Douze sujets d'articles suggérés »** de
-[`BLOG_WORKFLOW.md`](../BLOG_WORKFLOW.md). Quand elle est épuisée, le workflow sort en
-code 78 chaque lundi sans rien casser. La liste est écrite ici sous forme de tableau : il
-suffit d'ajouter des lignes au même format pour relancer la machine :
+La réserve est la section **« Sujets d'articles suggérés »** de
+[`BLOG_WORKFLOW.md`](../BLOG_WORKFLOW.md), écrite sous forme de tableau.
+
+### Réapprovisionnement automatique
+
+Le script se réapprovisionne seul : dès qu'il reste **moins de 8 sujets non traités**,
+il demande à `gpt-4o` un lot de **40 nouveaux sujets**, ancrés sur les `sector`,
+`location` et `geo_keywords` de `blog-config.json`. La liste des sujets déjà prévus est
+envoyée au modèle pour qu'il évite les redites, et ce qui revient est **dédupliqué sur le
+slug** — c'est lui qui nomme le dossier de l'article, donc la vraie clé d'idempotence :
+deux titres différents qui produisent le même slug sont bien un doublon.
+
+Les sujets retenus sont ajoutés **à la fin du tableau**, au format déjà en place dans le
+fichier et avec une numérotation continue. Le format n'est pas imposé par le script : il
+est relu dans le fichier (tableau à trois colonnes ici, mais la liste numérotée
+`13. **Titre** — angle` et le slug déclaré en quatrième colonne sont aussi reconnus).
+
+Constantes en tête de `generate-article.py` : `TOPIC_RESERVE_MIN` (8),
+`TOPIC_BATCH` (40), `TOPIC_MAX_CALLS` (2), `TOPICS_MODEL` (`gpt-4o`). Ce dernier est
+indépendant du `model` de rédaction configuré dans `blog-config.json`.
+
+### Pourquoi les sujets sont committés et poussés à part
+
+Dans le workflow GitHub, le réapprovisionnement tourne **avant** la rédaction, en
+`--topics-only`, et son commit est poussé immédiatement. Si l'article échoue ensuite, les
+sujets déjà générés sont acquis : ils ne seront pas régénérés — ni repayés — au run
+suivant.
+
+L'inverse est vrai aussi : **un échec du réapprovisionnement ne bloque jamais la
+publication**. En mode normal, l'exception est journalisée et la rédaction continue avec
+la réserve existante ; dans le workflow, l'étape passe en `::warning::` et le job
+poursuit. Seul `--topics-only`, dont c'est l'unique travail, remonte l'erreur.
+
+### Ajouter des sujets à la main
+
+Rien n'empêche d'en ajouter soi-même, au même format :
 
 ```markdown
 | 13 | Titre du sujet | Angle, intention de recherche visée |
 ```
-
-Le parseur accepte aussi la forme en liste numérotée `13. **Titre** — angle`.
 
 ## 8. Relecture
 

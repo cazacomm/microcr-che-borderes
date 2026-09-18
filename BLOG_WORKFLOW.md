@@ -103,7 +103,7 @@ En cas de doute : rester qualitatif (« selon votre situation », « renseignez-
 
 ---
 
-## 4. Douze sujets d'articles suggérés
+## 4. Sujets d'articles suggérés
 
 | # | Sujet | Angle / intention de recherche |
 |---|-------|-------------------------------|
