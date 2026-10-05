@@ -32,7 +32,7 @@
   </url>
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-10-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -87,6 +87,12 @@
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/bienfaits-petite-structure-pourquoi-12-places-changent/</loc>
     <lastmod>2026-09-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.micro-creche-borderes.fr/blog/sorties-activites-petit-autour-borderes-tarbes/</loc>
+    <lastmod>2026-10-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
