@@ -32,7 +32,7 @@
   </url>
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -99,6 +99,12 @@
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/langage-communication-avant-premiers-mots/</loc>
     <lastmod>2026-10-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.micro-creche-borderes.fr/blog/rentree-septembre-preparer-enfant-s-organiser-famille/</loc>
+    <lastmod>2026-10-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
