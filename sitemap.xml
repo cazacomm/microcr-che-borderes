@@ -32,7 +32,7 @@
   </url>
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/</loc>
-    <lastmod>2026-11-09</lastmod>
+    <lastmod>2026-11-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -123,6 +123,12 @@
   <url>
     <loc>https://www.micro-creche-borderes.fr/blog/avantages-creche-bilingue-jeune-age/</loc>
     <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.micro-creche-borderes.fr/blog/attentes-lors-premiere-semaine-creche/</loc>
+    <lastmod>2026-11-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
